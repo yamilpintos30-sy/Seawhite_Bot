@@ -9,6 +9,8 @@ export interface MenuOption {
   /** Tecla que se muestra: "A", "1", "0"... */
   key: string;
   label: string;
+  /** Línea aclaratoria que se muestra debajo de la opción (qué hace y dónde). */
+  hint?: string;
   /** Palabras alternativas que también seleccionan la opción (se comparan normalizadas). */
   aliases: string[];
   /** Estado destino. `null` = opción aún no disponible. */
@@ -40,18 +42,21 @@ export const BALANZA_MENU: Menu = {
     {
       key: "1",
       label: "Carga de Documentación",
+      hint: "Dudas para cargar en la página web: qué poner en cada campo, formatos, rechazos",
       aliases: ["carga", "carga de documentacion", "documentacion", "cargar", "a"],
       target: BotState.CARGA_DOC,
     },
     {
       key: "2",
       label: "Documentación de Chofer",
+      hint: "Consultá acá mismo los vencimientos de un chofer con su DNI",
       aliases: ["chofer", "choferes", "documentacion de chofer", "dni", "b"],
       target: BotState.CHOFER_DNI,
     },
     {
       key: "3",
       label: "Documentación de Camión o Acoplado",
+      hint: "Consultá acá mismo los vencimientos de un vehículo con su patente",
       aliases: ["camion", "camiones", "acoplado", "acoplados", "patente", "dominio", "vehiculo", "c"],
       target: BotState.CAMION_DOMINIO,
     },
@@ -66,6 +71,7 @@ export function renderMenu(menu: Menu): string {
   for (const opt of menu.options) {
     const suffix = opt.target === null ? " _(próximamente)_" : "";
     lines.push(`*${opt.key})* ${opt.label}${suffix}`);
+    if (opt.hint) lines.push(`   _${opt.hint}_`);
   }
   if (menu.footer) lines.push("", menu.footer);
   return lines.join("\n");

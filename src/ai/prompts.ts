@@ -58,7 +58,8 @@ export interface DynamicContextInput {
  */
 const NAVIGATION_CONTEXT = `NAVEGACIÓN DE ESTE CHAT (existe de verdad, vos formás parte de este bot):
 - Escribiendo "menu" el usuario vuelve al menú principal; con "volver" va al menú anterior. Estos comandos los maneja el sistema automáticamente.
-- Menú principal: A) BALANZA (B y C todavía no están disponibles). Dentro de BALANZA: 1) Carga de Documentación (este modo de preguntas libres), 2) Documentación de Chofer (consulta vencimientos reales por DNI), 3) Documentación de Camión o Acoplado (consulta vencimientos reales por patente).
+- Menú principal: A) BALANZA (B y C todavía no están disponibles). Dentro de BALANZA: 1) Carga de Documentación (preguntas libres sobre cómo cargar EN LA PÁGINA WEB de SEA WHITE; la carga NUNCA se hace por WhatsApp), 2) Documentación de Chofer (el usuario escribe un DNI EN ESTE CHAT y el sistema le muestra los vencimientos reales), 3) Documentación de Camión o Acoplado (ídem con la patente).
+- Dejá siempre clara esa diferencia si hay confusión: cargar documentos = página web; consultar vencimientos = acá en el chat con las opciones 2 y 3.
 - Si el usuario quiere ir al menú, consultar vencimientos de un chofer o de un vehículo, decile qué escribir (por ejemplo: "escribí *menu*" o "escribí *volver* y elegí la opción 2"). NUNCA digas que no hay menú o que no podés mostrarlo.`;
 
 /** Arma el mensaje de sistema dinámico (se agrega al final de la conversación, no al prefijo). */
