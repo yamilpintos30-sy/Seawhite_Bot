@@ -33,6 +33,13 @@ const schema = z.object({
   WEBHOOK_SECRET: z.string().min(8, "WEBHOOK_SECRET debe tener al menos 8 caracteres"),
   /** Estados de conversación en los que el bot responde (separados por coma). */
   BOT_ACTIVE_STATUSES: z.string().default("pending,open"),
+  /**
+   * ¿El usuario puede pedir hablar con una persona ("persona", "quiero un humano")?
+   * false = bot completamente automático: ante ese pedido explica que la atención es
+   * automática y sigue ayudando. La detección de un agente humano que escribe desde
+   * Chatwoot funciona igual con cualquier valor (el bot nunca pisa a una persona).
+   */
+  HANDOFF_ENABLED: booleanFromEnv.default(false),
   /** Estado al que pasa la conversación al derivar. "none" = no tocar el estado. */
   HANDOFF_STATUS: z.enum(["open", "pending", "none"]).default("none"),
   /** Minutos que el bot se mantiene en silencio después de derivar a una persona. */

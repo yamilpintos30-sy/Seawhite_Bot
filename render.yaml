@@ -32,6 +32,8 @@ services:
         sync: false # opcional: vacío = sin filtro (un solo inbox)
       - key: WEBHOOK_SECRET
         generateValue: true # Render genera un secreto largo automáticamente
+      - key: HANDOFF_ENABLED
+        value: "false" # atención 100% automática; "true" habilita el pedido de persona
       - key: HANDOFF_STATUS
         value: none
       - key: HANDOFF_SILENCE_MINUTES

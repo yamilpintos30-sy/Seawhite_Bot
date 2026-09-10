@@ -94,12 +94,37 @@ describe("BotEngine — menús", () => {
     expect((await t.sessions.get("c1"))?.state).toBe(BotState.MAIN_MENU);
   });
 
-  it("'persona' deriva la conversación y silencia al bot", async () => {
+  it("modo automático (default): 'persona' NO deriva; el bot explica y sigue atendiendo", async () => {
     await t.send("hola");
     const reply = await t.send("persona");
+    expect(reply.handoff).toBeUndefined();
+    expect(reply.messages[0]).toContain("automática");
+    const next = await t.send("menu");
+    expect(next.messages.join("\n")).toContain("¿Usted desea consultar por?");
+  });
+
+  it("con HANDOFF_ENABLED=true, 'persona' deriva y silencia al bot", async () => {
+    const configConHandoff = loadConfig({
+      CHATWOOT_API_TOKEN: "t",
+      CHATWOOT_ACCOUNT_ID: "1",
+      WEBHOOK_SECRET: "secret-de-test",
+      ANTHROPIC_API_KEY: "k",
+      SEALINK_EMAIL: "e",
+      SEALINK_PASSWORD: "p",
+      SUPABASE_URL: "",
+      SUPABASE_SERVICE_ROLE_KEY: "",
+      HANDOFF_ENABLED: "true",
+    });
+    const sessions = new MemorySessionStore();
+    const engine = new BotEngine({
+      services: { ai: new FakeAi(), sealink: new FakeSeaLink(), config: configConHandoff, logger: pino({ level: "silent" }), now: () => new Date("2026-09-10T15:00:00Z") },
+      sessions,
+    });
+    const send = (text: string) => engine.handle({ id: text, conversationId: "cp", accountId: "1", text, attachments: [] });
+    await send("hola");
+    const reply = await send("persona");
     expect(reply.handoff).toBe(true);
-    const next = await t.send("hola?");
-    expect(next.messages).toEqual([]);
+    expect((await send("hola?")).messages).toEqual([]);
   });
 });
 

@@ -15,11 +15,13 @@
 import type { MessageLog } from "../storage/messageLog.js";
 import type { SessionStore } from "../storage/sessionStore.js";
 import { nombreDePila } from "../utils/names.js";
-import { detectGlobalCommand, HELP_TEXT } from "./commands.js";
+import { detectGlobalCommand, helpText } from "./commands.js";
 import { getHandler, PARENT_STATE } from "./handlers/index.js";
 import { BotState, type BotReply, type BotServices, type BotStateName, type IncomingMessage, type Session } from "./types.js";
 
 const HANDOFF_MESSAGE = "Perfecto, le paso tu consulta a una persona del equipo de SEA WHITE para que te responda por acá. 🙌";
+const AUTOMATIC_ONLY_MESSAGE =
+  "Por acá la atención es automática, pero te puedo resolver casi todo yo 🤖. Contame tu consulta sobre la documentación, o escribí *menu* para ver las opciones.";
 const GENERIC_ERROR = "Uy, tuve un problema para procesar tu mensaje. Probá de nuevo en un momento o escribí *menu* para volver al inicio.";
 
 /** Comandos con los que el cliente despierta al bot mientras está derivado a una persona. */
@@ -145,9 +147,13 @@ export class BotEngine {
       case "BACK":
         return this.transition(session, message, PARENT_STATE[session.state]);
       case "HELP":
-        return { messages: [HELP_TEXT] };
+        return { messages: [helpText(this.deps.services.config.HANDOFF_ENABLED)] };
       case "HANDOFF": {
         const { config, now } = this.deps.services;
+        if (!config.HANDOFF_ENABLED) {
+          // Modo completamente automático: no se deriva; se le explica y se sigue ayudando.
+          return { messages: [AUTOMATIC_ONLY_MESSAGE] };
+        }
         session.handedOffUntil = new Date(now().getTime() + config.HANDOFF_SILENCE_MINUTES * 60_000).toISOString();
         return { messages: [HANDOFF_MESSAGE], handoff: true };
       }

@@ -32,11 +32,13 @@ export function detectGlobalCommand(input: string): GlobalCommand | undefined {
   return undefined;
 }
 
-export const HELP_TEXT = [
-  "Podés navegar el asistente con estos atajos:",
-  "• *menu* → volver al menú principal",
-  "• *volver* → volver al menú anterior",
-  "• *persona* → hablar con alguien de SEA WHITE",
-  "",
-  "En *Carga de Documentación* escribí tu consulta con tus palabras (por ejemplo: _¿qué pongo en DNI?_). También podés mandar una captura o un PDF.",
-].join("\n");
+export function helpText(handoffEnabled: boolean): string {
+  return [
+    "Podés navegar el asistente con estos atajos:",
+    "• *menu* → volver al menú principal",
+    "• *volver* → volver al menú anterior",
+    ...(handoffEnabled ? ["• *persona* → hablar con alguien de SEA WHITE"] : []),
+    "",
+    "En *Carga de Documentación* escribí tu consulta con tus palabras (por ejemplo: _¿qué pongo en DNI?_). También podés mandar una captura o un PDF.",
+  ].join("\n");
+}
