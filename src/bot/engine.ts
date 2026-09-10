@@ -1,0 +1,215 @@
+/**
+ * Motor del bot.
+ *
+ * Flujo por cada mensaje entrante:
+ *   1. Cargar (o crear) la sesión de la conversación.
+ *   2. Si la sesión expiró por inactividad -> volver al menú principal.
+ *   3. Si una persona tomó la conversación -> no responder.
+ *   4. Comandos globales (menu / volver / persona / ayuda).
+ *   5. Delegar en el handler del estado actual.
+ *   6. Si hubo cambio de estado -> mostrar la "entrada" del nuevo estado.
+ *   7. Guardar la sesión y registrar los mensajes.
+ *
+ * Los mensajes de una misma conversación se procesan en orden (cola por conversación).
+ */
+import type { MessageLog } from "../storage/messageLog.js";
+import type { SessionStore } from "../storage/sessionStore.js";
+import { nombreDePila } from "../utils/names.js";
+import { detectGlobalCommand, HELP_TEXT } from "./commands.js";
+import { getHandler, PARENT_STATE } from "./handlers/index.js";
+import { BotState, type BotReply, type BotServices, type BotStateName, type IncomingMessage, type Session } from "./types.js";
+
+const HANDOFF_MESSAGE = "Perfecto, le paso tu consulta a una persona del equipo de SEA WHITE para que te responda por acá. 🙌";
+const GENERIC_ERROR = "Uy, tuve un problema para procesar tu mensaje. Probá de nuevo en un momento o escribí *menu* para volver al inicio.";
+
+/** Comandos con los que el cliente despierta al bot mientras está derivado a una persona. */
+const REACTIVATION_TRIGGERS = ["/bot", "bot", "volver al bot", "reactivar bot", "activar bot"];
+
+function isReactivationCommand(text: string): boolean {
+  const t = (text ?? "").trim().toLowerCase();
+  return REACTIVATION_TRIGGERS.includes(t);
+}
+
+export interface BotEngineDeps {
+  services: BotServices;
+  sessions: SessionStore;
+  messageLog?: MessageLog;
+}
+
+export class BotEngine {
+  private readonly queues = new Map<string, Promise<unknown>>();
+
+  constructor(private readonly deps: BotEngineDeps) {}
+
+  /** Procesa un mensaje garantizando orden por conversación. */
+  async handle(message: IncomingMessage): Promise<BotReply> {
+    const previous = this.queues.get(message.conversationId) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(() => this.process(message));
+    this.queues.set(message.conversationId, run);
+    run.finally(() => {
+      if (this.queues.get(message.conversationId) === run) this.queues.delete(message.conversationId);
+    });
+    return run;
+  }
+
+  /** Olvida la sesión (por ejemplo, cuando la conversación se resuelve en Chatwoot). */
+  async reset(conversationId: string): Promise<void> {
+    await this.deps.sessions.delete(conversationId);
+  }
+
+  /** Marca la conversación como tomada por una persona. */
+  async markHandedOff(conversationId: string, accountId: string): Promise<void> {
+    const { services, sessions } = this.deps;
+    const session = (await sessions.get(conversationId)) ?? this.newSession(conversationId, accountId);
+    session.handedOffUntil = new Date(services.now().getTime() + services.config.HANDOFF_SILENCE_MINUTES * 60_000).toISOString();
+    session.updatedAt = services.now().toISOString();
+    await sessions.save(session);
+  }
+
+  // ---------------------------------------------------------------------------
+
+  private async process(message: IncomingMessage): Promise<BotReply> {
+    const { services, sessions, messageLog } = this.deps;
+    const { logger, config } = services;
+    const now = services.now();
+
+    let session = await sessions.get(message.conversationId);
+    let isNew = false;
+
+    if (!session) {
+      session = this.newSession(message.conversationId, message.accountId, message.sender);
+      isNew = true;
+    } else if (now.getTime() - Date.parse(session.updatedAt) > config.SESSION_TTL_MINUTES * 60_000) {
+      logger.info({ conversationId: message.conversationId }, "Sesión expirada por inactividad; reiniciando");
+      session = this.newSession(message.conversationId, message.accountId, message.sender);
+      isNew = true;
+    }
+
+    if (session.handedOffUntil && Date.parse(session.handedOffUntil) > now.getTime()) {
+      // El cliente puede despertar al bot explícitamente (idea del BOT MIAMI).
+      if (isReactivationCommand(message.text)) {
+        logger.info({ conversationId: message.conversationId }, "Handoff desactivado por comando del cliente");
+        session.handedOffUntil = null;
+        session.state = BotState.MAIN_MENU;
+        session.updatedAt = now.toISOString();
+        await messageLog?.logIncoming(message, session.state);
+        const reply = await this.transition(session, message, BotState.MAIN_MENU);
+        await sessions.save(session);
+        await messageLog?.logOutgoing(message, reply.messages, session.state);
+        return reply;
+      }
+      logger.debug({ conversationId: message.conversationId }, "Conversación derivada a una persona; el bot no responde");
+      // Se registra igual, así el historial queda completo para la persona que atiende.
+      await messageLog?.logIncoming(message, session.state);
+      return { messages: [] };
+    }
+    session.handedOffUntil = null;
+
+    await messageLog?.logIncoming(message, session.state);
+
+    let reply: BotReply;
+    try {
+      reply = isNew ? await this.startConversation(session, message) : await this.dispatch(session, message);
+    } catch (err) {
+      logger.error({ err, conversationId: message.conversationId, state: session.state }, "Error procesando mensaje");
+      reply = { messages: [GENERIC_ERROR] };
+    }
+
+    session.updatedAt = services.now().toISOString();
+    await sessions.save(session);
+    await messageLog?.logOutgoing(message, reply.messages, session.state);
+    return reply;
+  }
+
+  /** Primer mensaje de una conversación nueva (o expirada): saludo + menú principal. */
+  private async startConversation(session: Session, message: IncomingMessage): Promise<BotReply> {
+    await this.identifyContact(session, message);
+    const ctx = { session, message, services: this.deps.services };
+    const intro = await getHandler(BotState.MAIN_MENU).enter(ctx);
+
+    // Si el primer mensaje ya es una opción válida del menú ("A", "balanza"), la respetamos.
+    const result = await getHandler(BotState.MAIN_MENU).handle(ctx);
+    if (result.nextState) {
+      return this.transition(session, message, result.nextState, [intro[0]!.split("\n\n")[0]!]);
+    }
+    return { messages: intro };
+  }
+
+  private async dispatch(session: Session, message: IncomingMessage): Promise<BotReply> {
+    const ctx = { session, message, services: this.deps.services };
+
+    const command = detectGlobalCommand(message.text);
+    switch (command) {
+      case "MAIN_MENU":
+        return this.transition(session, message, BotState.MAIN_MENU);
+      case "BACK":
+        return this.transition(session, message, PARENT_STATE[session.state]);
+      case "HELP":
+        return { messages: [HELP_TEXT] };
+      case "HANDOFF": {
+        const { config, now } = this.deps.services;
+        session.handedOffUntil = new Date(now().getTime() + config.HANDOFF_SILENCE_MINUTES * 60_000).toISOString();
+        return { messages: [HANDOFF_MESSAGE], handoff: true };
+      }
+    }
+
+    const handler = getHandler(session.state);
+    const result = await handler.handle(ctx);
+
+    if (result.nextState && result.nextState !== session.state) {
+      if (result.skipEnter) {
+        session.state = result.nextState;
+        return { messages: result.messages, handoff: result.handoff };
+      }
+      return this.transition(session, message, result.nextState, result.messages);
+    }
+    if (result.nextState === session.state && !result.skipEnter) {
+      // Mismo estado pero pidieron re-entrar (por ejemplo, volver a mostrar el menú).
+      const entry = await handler.enter(ctx);
+      return { messages: [...result.messages, ...entry], handoff: result.handoff };
+    }
+    return { messages: result.messages, handoff: result.handoff };
+  }
+
+  private async transition(session: Session, message: IncomingMessage, nextState: BotStateName, before: string[] = []): Promise<BotReply> {
+    session.state = nextState;
+    const entry = await getHandler(nextState).enter({ session, message, services: this.deps.services });
+    return { messages: [...before, ...entry] };
+  }
+
+  /**
+   * Busca el nombre del chofer por su teléfono en SeaLink (endpoint del anexo,
+   * sólo lectura) para saludarlo por el nombre. Si falla o no existe, el saludo
+   * queda genérico: nunca bloquea la conversación.
+   */
+  private async identifyContact(session: Session, message: IncomingMessage): Promise<void> {
+    const { services } = this.deps;
+    const phone = message.sender?.phone?.trim();
+    if (!phone) return;
+    try {
+      const lookup = await services.sealink.consultarChoferPorTelefono(phone);
+      if (lookup.found) {
+        const displayName = nombreDePila(lookup.razonSocial);
+        session.contact = { ...session.contact, phone, displayName: displayName || undefined };
+        services.logger.info({ conversationId: session.conversationId, displayName }, "Contacto identificado por teléfono en SeaLink");
+      }
+    } catch (err) {
+      services.logger.warn({ err, conversationId: session.conversationId }, "No se pudo identificar el contacto por teléfono (saludo genérico)");
+    }
+  }
+
+  private newSession(conversationId: string, accountId: string, contact?: IncomingMessage["sender"]): Session {
+    const ts = this.deps.services.now().toISOString();
+    return {
+      conversationId,
+      accountId,
+      state: BotState.MAIN_MENU,
+      context: {},
+      history: [],
+      handedOffUntil: null,
+      contact,
+      createdAt: ts,
+      updatedAt: ts,
+    };
+  }
+}

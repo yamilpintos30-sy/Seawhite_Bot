@@ -1,0 +1,14 @@
+# Secretos (Credenciales.txt está fuera de esta carpeta: no incluirlo nunca en un repositorio)
+.env
+.env.*
+!.env.example
+
+# Build / deps
+node_modules/
+dist/
+coverage/
+
+# Logs y temporales
+*.log
+.DS_Store
+Thumbs.db

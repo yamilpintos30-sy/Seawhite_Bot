@@ -1,0 +1,209 @@
+/**
+ * Tests del motor: navegación de menús, consulta de chofer/camión y comandos globales.
+ * La IA y SeaLink se reemplazan por dobles para no depender de servicios externos.
+ */
+import { beforeEach, describe, expect, it } from "vitest";
+import pino from "pino";
+import type { AiAnswerInput, AiService } from "../src/ai/types.js";
+import { BotEngine } from "../src/bot/engine.js";
+import { BotState, type BotServices, type IncomingMessage } from "../src/bot/types.js";
+import { loadConfig } from "../src/config.js";
+import { FakeSeaLink } from "../src/integrations/sealink/fake.js";
+import { MemorySessionStore } from "../src/storage/memorySessionStore.js";
+
+class FakeAi implements AiService {
+  calls: AiAnswerInput[] = [];
+  async answer(input: AiAnswerInput) {
+    this.calls.push({ ...input, history: [...input.history] });
+    return { text: `IA(${input.mode}): ${input.userText}` };
+  }
+}
+
+const config = loadConfig({
+  CHATWOOT_API_TOKEN: "t",
+  CHATWOOT_ACCOUNT_ID: "1",
+  WEBHOOK_SECRET: "secret-de-test",
+  ANTHROPIC_API_KEY: "k",
+  SEALINK_EMAIL: "e",
+  SEALINK_PASSWORD: "p",
+  SUPABASE_URL: "",
+  SUPABASE_SERVICE_ROLE_KEY: "",
+  SESSION_TTL_MINUTES: "60",
+});
+
+function setup(now = new Date("2026-08-26T15:00:00Z")) {
+  const ai = new FakeAi();
+  const sessions = new MemorySessionStore();
+  const services: BotServices = {
+    ai,
+    sealink: new FakeSeaLink(),
+    config,
+    logger: pino({ level: "silent" }),
+    now: () => now,
+  };
+  const engine = new BotEngine({ services, sessions });
+  let counter = 0;
+  const send = (text: string, conversationId = "c1") =>
+    engine.handle({ id: String(++counter), conversationId, accountId: "1", text, attachments: [] } satisfies IncomingMessage);
+  return { engine, ai, sessions, send };
+}
+
+describe("BotEngine — menús", () => {
+  let t: ReturnType<typeof setup>;
+  beforeEach(() => {
+    t = setup();
+  });
+
+  it("saluda y muestra el menú principal en el primer mensaje", async () => {
+    const reply = await t.send("hola");
+    expect(reply.messages.join("\n")).toContain("¿Usted desea consultar por?");
+    expect(reply.messages.join("\n")).toContain("*A)* BALANZA");
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.MAIN_MENU);
+  });
+
+  it("si el primer mensaje ya es una opción válida, la toma", async () => {
+    const reply = await t.send("A");
+    expect(reply.messages.join("\n")).toContain("BALANZA");
+    expect(reply.messages.join("\n")).toContain("*1)* Carga de Documentación");
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.BALANZA_MENU);
+  });
+
+  it("A -> menú BALANZA; opción no disponible avisa", async () => {
+    await t.send("hola");
+    const b = await t.send("B");
+    expect(b.messages[0]).toContain("todavía no está disponible");
+    const a = await t.send("balanza");
+    expect(a.messages.join("\n")).toContain("Documentación de Chofer");
+  });
+
+  it("opción inválida repite el menú", async () => {
+    await t.send("hola");
+    const reply = await t.send("xyz");
+    expect(reply.messages[0]).toContain("No entendí");
+    expect(reply.messages[1]).toContain("*A)* BALANZA");
+  });
+
+  it("volver y menu navegan hacia atrás", async () => {
+    await t.send("hola");
+    await t.send("A");
+    await t.send("1");
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.CARGA_DOC);
+    await t.send("volver");
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.BALANZA_MENU);
+    await t.send("menu");
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.MAIN_MENU);
+  });
+
+  it("'persona' deriva la conversación y silencia al bot", async () => {
+    await t.send("hola");
+    const reply = await t.send("persona");
+    expect(reply.handoff).toBe(true);
+    const next = await t.send("hola?");
+    expect(next.messages).toEqual([]);
+  });
+});
+
+describe("BotEngine — Carga de Documentación", () => {
+  it("responde preguntas libres con la IA en modo 'carga' y mantiene historial", async () => {
+    const t = setup();
+    await t.send("hola");
+    await t.send("A");
+    await t.send("1");
+    const r1 = await t.send("¿Qué pongo en DNI?");
+    expect(r1.messages[0]).toBe("IA(carga): ¿Qué pongo en DNI?");
+    await t.send("¿Y en teléfono?");
+    expect(t.ai.calls[1]?.history).toHaveLength(2);
+    expect(t.ai.calls[1]?.history[0]).toEqual({ role: "user", content: "¿Qué pongo en DNI?" });
+  });
+});
+
+describe("BotEngine — Documentación de Chofer", () => {
+  it("pide DNI, consulta SeaLink y muestra vencimientos", async () => {
+    const t = setup();
+    await t.send("A");
+    const ask = await t.send("2");
+    expect(ask.messages[0]).toContain("DNI del chofer");
+
+    const result = await t.send("35.413.889");
+    const text = result.messages.join("\n");
+    expect(text).toContain("PEREZ JUAN");
+    expect(text).toContain("Licencia de conducir");
+    expect(text).toContain("10/03/2027");
+    expect(text).toContain("Formulario 931");
+    expect(text).toContain("vence en 5 días");
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.CHOFER_QA);
+  });
+
+  it("DNI inválido o inexistente da un mensaje claro", async () => {
+    const t = setup();
+    await t.send("A");
+    await t.send("2");
+    expect((await t.send("abc")).messages[0]).toContain("DNI");
+    expect((await t.send("28885099")).messages[0]).toContain("No encontré ningún chofer");
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.CHOFER_DNI);
+  });
+
+  it("en modo QA responde con IA usando los datos y permite consultar otro DNI", async () => {
+    const t = setup();
+    await t.send("A");
+    await t.send("2");
+    await t.send("35413889");
+    const qa = await t.send("¿Tiene la ART vigente?");
+    expect(qa.messages[0]).toBe("IA(chofer): ¿Tiene la ART vigente?");
+    expect(t.ai.calls[0]?.data).toMatchObject({ dni: "35413889", nombre: "PEREZ JUAN" });
+
+    const otro = await t.send("28885090");
+    expect(otro.messages.join("\n")).toContain("GOMEZ CARLOS");
+    expect(otro.messages.join("\n")).toContain("VENCIDO");
+  });
+});
+
+describe("BotEngine — Documentación de Camión", () => {
+  it("consulta por patente y distingue vencido / sin fecha", async () => {
+    const t = setup();
+    await t.send("A");
+    await t.send("3");
+    const r = await t.send("3437 bxl");
+    const text = r.messages.join("\n");
+    expect(text).toContain("3437BXL");
+    expect(text).toContain("VENCIDO");
+    expect(text).toContain("sin fecha informada");
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.CAMION_QA);
+  });
+
+  it("patente inexistente", async () => {
+    const t = setup();
+    await t.send("A");
+    await t.send("3");
+    expect((await t.send("ZZ999ZZ")).messages[0]).toContain("No encontré");
+  });
+});
+
+describe("BotEngine — sesiones", () => {
+  it("una sesión inactiva vuelve al menú principal", async () => {
+    let now = new Date("2026-08-26T15:00:00Z");
+    const ai = new FakeAi();
+    const sessions = new MemorySessionStore();
+    const engine = new BotEngine({
+      services: { ai, sealink: new FakeSeaLink(), config, logger: pino({ level: "silent" }), now: () => now },
+      sessions,
+    });
+    const send = (text: string) => engine.handle({ id: text, conversationId: "c9", accountId: "1", text, attachments: [] });
+    await send("A");
+    await send("1");
+    expect((await sessions.get("c9"))?.state).toBe(BotState.CARGA_DOC);
+
+    now = new Date("2026-08-26T17:00:00Z"); // 2 horas después
+    const reply = await send("hola");
+    expect(reply.messages.join("\n")).toContain("¿Usted desea consultar por?");
+    expect((await sessions.get("c9"))?.state).toBe(BotState.MAIN_MENU);
+  });
+
+  it("procesa en orden mensajes concurrentes de la misma conversación", async () => {
+    const t = setup();
+    const [a, b, c] = await Promise.all([t.send("hola"), t.send("A"), t.send("2")]);
+    expect(a.messages.join("\n")).toContain("¿Usted desea consultar por?");
+    expect(b.messages.join("\n")).toContain("Carga de Documentación");
+    expect(c.messages[0]).toContain("DNI del chofer");
+  });
+});
