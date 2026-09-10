@@ -8,7 +8,7 @@ import { clasificarVencimiento, lineaVencimiento, resumenGeneral, vencimientosPa
 import { looksLikeDni, normalizeDni } from "../../domain/validators.js";
 import { todayInTimeZone } from "../../utils/dates.js";
 import { BotState, type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
-import { answerWithAi, HINT_NAVEGACION } from "./shared.js";
+import { answerWithAi, HINT_NAVEGACION, LIMITE_DIARIO_CONSULTAS, withinLookupLimit } from "./shared.js";
 
 const PEDIR_DNI = "Escribí el *DNI del chofer* (sólo números, sin puntos). Ejemplo: 30123456";
 
@@ -53,6 +53,9 @@ async function consultarChofer(ctx: HandlerContext): Promise<HandlerResult> {
   const dni = normalizeDni(message.text);
   if (!dni.ok) {
     return { messages: [dni.error!] };
+  }
+  if (!withinLookupLimit(ctx)) {
+    return { messages: [LIMITE_DIARIO_CONSULTAS] };
   }
 
   let lookup;

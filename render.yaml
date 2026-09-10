@@ -49,6 +49,12 @@ services:
       - key: CLAUDE_CACHE_TTL
         value: 1h
 
+      # --- Límites diarios por conversación (anti-abuso; 0 = sin límite) ---
+      - key: DAILY_AI_LIMIT
+        value: "30"
+      - key: DAILY_LOOKUP_LIMIT
+        value: "30"
+
       # --- SeaLink (SOLO LECTURA) ---
       - key: SEALINK_BASE_URL
         value: https://api.seawhite.com.ar:9443

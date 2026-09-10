@@ -71,6 +71,14 @@ const schema = z.object({
   SUPABASE_URL: z.string().url().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
 
+  // --- Límites diarios por conversación (anti-abuso; 0 = sin límite) ---
+  /** Máximo de respuestas con IA (preguntas libres) por chat por día. */
+  DAILY_AI_LIMIT: z.coerce.number().int().min(0).default(30),
+  /** Máximo de consultas a SeaLink (DNI/patente) por chat por día. */
+  DAILY_LOOKUP_LIMIT: z.coerce.number().int().min(0).default(30),
+  /** Largo máximo del mensaje que se envía a la IA (se recorta el excedente). */
+  AI_MAX_INPUT_CHARS: z.coerce.number().int().positive().default(2000),
+
   // --- Sesiones ---
   /** Minutos de inactividad tras los cuales la conversación vuelve al menú principal. */
   SESSION_TTL_MINUTES: z.coerce.number().int().positive().default(60),

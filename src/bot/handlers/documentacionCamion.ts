@@ -8,7 +8,7 @@ import { clasificarVencimiento, lineaVencimiento, resumenGeneral, vencimientosPa
 import { looksLikePatente, normalizePatente } from "../../domain/validators.js";
 import { todayInTimeZone } from "../../utils/dates.js";
 import { BotState, type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
-import { answerWithAi, HINT_NAVEGACION } from "./shared.js";
+import { answerWithAi, HINT_NAVEGACION, LIMITE_DIARIO_CONSULTAS, withinLookupLimit } from "./shared.js";
 
 const PEDIR_DOMINIO = "Escribí la *patente (dominio)* del camión o acoplado, toda junta, sin espacios ni guiones. Ejemplo: AA123BB";
 
@@ -53,6 +53,9 @@ async function consultarCamion(ctx: HandlerContext): Promise<HandlerResult> {
   const patente = normalizePatente(message.text);
   if (!patente.ok) {
     return { messages: [patente.error!] };
+  }
+  if (!withinLookupLimit(ctx)) {
+    return { messages: [LIMITE_DIARIO_CONSULTAS] };
   }
 
   let lookup;
