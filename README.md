@@ -131,8 +131,8 @@ El tono y las reglas de oro (no inventar, pedir captura, no prometer aprobación
 
 ## Costos y modelo
 
-- Modelo por defecto: `claude-opus-5`. La base de conocimiento (~9 K tokens) se envía con *prompt caching* (`CLAUDE_CACHE_TTL=1h`), por lo que la mayoría de las consultas pagan ~10 % del precio de entrada. Estimación: USD 30–50/mes para ~1.000 respuestas.
-- Para bajar el costo se puede usar `CLAUDE_MODEL=claude-sonnet-5` (≈ 2,5× más barato) sin cambiar nada más.
+- Modelo por defecto: `claude-sonnet-5`. La base de conocimiento (~9 K tokens) se envía con *prompt caching* (`CLAUDE_CACHE_TTL=1h`), por lo que la mayoría de las consultas pagan ~10 % del precio de entrada. Estimación: USD 12–20/mes para ~1.000 respuestas.
+- Si algún día se necesita el modelo tope de línea, se cambia con `CLAUDE_MODEL=claude-opus-5` sin tocar código (≈ 2,5× más caro).
 - `CLAUDE_FALLBACKS=true` activa el fallback automático del lado del servidor si el modelo principal rechaza una consulta por política; el usuario nunca se queda sin respuesta.
 
 ## Operación

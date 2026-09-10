@@ -51,7 +51,7 @@ const schema = z.object({
 
   // --- Claude ---
   ANTHROPIC_API_KEY: z.string().min(1, "ANTHROPIC_API_KEY es obligatorio"),
-  CLAUDE_MODEL: z.string().default("claude-opus-5"),
+  CLAUDE_MODEL: z.string().default("claude-sonnet-5"),
   CLAUDE_EFFORT: z.enum(["low", "medium", "high", "xhigh", "max"]).default("medium"),
   CLAUDE_MAX_TOKENS: z.coerce.number().int().positive().default(1500),
   /** TTL del prompt caching de la base de conocimiento: "5m" o "1h". */

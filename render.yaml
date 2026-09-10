@@ -45,7 +45,7 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: CLAUDE_MODEL
-        value: claude-opus-5
+        value: claude-sonnet-5
       - key: CLAUDE_EFFORT
         value: medium
       - key: CLAUDE_CACHE_TTL
