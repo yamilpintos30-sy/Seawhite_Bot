@@ -99,6 +99,9 @@ npm run build && npm start   # producción
 ```
 Health check: `GET http://localhost:3000/health`.
 
+### 5b. Desplegar en Render (producción)
+El repo incluye [render.yaml](render.yaml): en Render, **New + → Blueprint** → conectar `Seawhite_Bot` → Render crea el servicio (instancia *starter*, ~US$7/mes, según la guía) y pide completar los secretos (tokens de Chatwoot/Claude/SeaLink/Supabase). El `WEBHOOK_SECRET` lo genera Render solo. La URL pública queda como `https://seawhite-bot.onrender.com` (o similar) y es la que se usa en el webhook de Chatwoot. Cada push a `main` redespliega automáticamente.
+
 ### 6. Conectar Chatwoot
 El bot tiene que ser accesible por HTTPS desde internet (en desarrollo: `ngrok http 3000` o similar).
 

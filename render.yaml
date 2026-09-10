@@ -1,0 +1,64 @@
+# Blueprint de Render para el bot de WhatsApp SEA WHITE.
+# En Render: New + -> Blueprint -> conectar este repo. Render lee este archivo,
+# crea el servicio y pide completar las variables marcadas con sync: false
+# (los secretos NUNCA van en este archivo ni en el repo).
+services:
+  - type: web
+    name: seawhite-bot
+    runtime: node
+    plan: starter # 0.5 CPU / 512 MB — la instancia básica de la guía (~US$7/mes)
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true # cada push a main redespliega solo
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: TIMEZONE
+        value: America/Argentina/Buenos_Aires
+
+      # --- Chatwoot ---
+      - key: CHATWOOT_BASE_URL
+        value: https://app.chatwoot.com
+      - key: CHATWOOT_API_TOKEN
+        sync: false
+      - key: CHATWOOT_ACCOUNT_ID
+        sync: false
+      - key: CHATWOOT_INBOX_ID
+        sync: false # opcional: vacío = sin filtro (un solo inbox)
+      - key: WEBHOOK_SECRET
+        generateValue: true # Render genera un secreto largo automáticamente
+      - key: HANDOFF_STATUS
+        value: none
+      - key: HANDOFF_SILENCE_MINUTES
+        value: "120"
+
+      # --- Claude ---
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: CLAUDE_MODEL
+        value: claude-opus-5
+      - key: CLAUDE_EFFORT
+        value: medium
+      - key: CLAUDE_CACHE_TTL
+        value: 1h
+
+      # --- SeaLink (SOLO LECTURA) ---
+      - key: SEALINK_BASE_URL
+        value: https://api.seawhite.com.ar:9443
+      - key: SEALINK_EMAIL
+        sync: false
+      - key: SEALINK_PASSWORD
+        sync: false
+      - key: SEALINK_SERVIDOR
+        value: "1"
+
+      # --- Supabase ---
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
