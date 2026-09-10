@@ -73,13 +73,13 @@ describe("BotEngine — reactivación durante handoff", () => {
     expect((await t.send("¿estás ahí?")).messages).toEqual([]);
 
     const wake = await t.send("/bot");
-    expect(wake.messages.join("\n")).toContain("¿Usted desea consultar por?");
-    expect((await t.sessions.get("h1"))?.state).toBe(BotState.MAIN_MENU);
+    expect(wake.messages.join("\n")).toContain("¿Qué necesitás?");
+    expect((await t.sessions.get("h1"))?.state).toBe(BotState.BALANZA_MENU);
     expect((await t.sessions.get("h1"))?.handedOffUntil).toBeNull();
 
     // Después de despertar, responde normal.
-    const next = await t.send("A");
-    expect(next.messages.join("\n")).toContain("BALANZA");
+    const next = await t.send("2");
+    expect(next.messages.join("\n")).toContain("DNI del chofer");
   });
 
   it("una frase cualquiera que menciona 'bot' NO despierta al bot", async () => {

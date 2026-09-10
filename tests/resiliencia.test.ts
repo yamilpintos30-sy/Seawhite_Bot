@@ -49,7 +49,7 @@ describe("Resiliencia — Supabase roto", () => {
     const engine = new BotEngine({ services, sessions: new BrokenSessionStore() });
 
     const reply = await engine.handle({ id: "1", conversationId: "r1", accountId: "1", text: "Hola!", attachments: [] });
-    expect(reply.messages.join("\n")).toContain("¿Usted desea consultar por?");
+    expect(reply.messages.join("\n")).toContain("¿Qué necesitás?");
 
     // Y no queda ninguna promesa suelta que reviente después.
     await new Promise((r) => setTimeout(r, 20));

@@ -69,7 +69,7 @@ describe("Límites en el bot", () => {
     const limited = await t.send("pregunta 3");
     expect(limited.messages[0]).toContain("límite de consultas por hoy");
     // El menú sigue funcionando aunque la IA esté cortada.
-    expect((await t.send("menu")).messages.join("\n")).toContain("¿Usted desea consultar por?");
+    expect((await t.send("menu")).messages.join("\n")).toContain("¿Qué necesitás?");
   });
 
   it("corta las consultas SeaLink al superar DAILY_LOOKUP_LIMIT", async () => {

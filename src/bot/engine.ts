@@ -17,6 +17,8 @@ import type { SessionStore } from "../storage/sessionStore.js";
 import { nombreDePila } from "../utils/names.js";
 import { detectGlobalCommand, helpText } from "./commands.js";
 import { getHandler, PARENT_STATE } from "./handlers/index.js";
+import { welcomeLine } from "./handlers/menuHandlers.js";
+import { startState } from "./menus.js";
 import { BotState, type BotReply, type BotServices, type BotStateName, type IncomingMessage, type Session } from "./types.js";
 
 const HANDOFF_MESSAGE = "Perfecto, le paso tu consulta a una persona del equipo de SEA WHITE para que te responda por acá. 🙌";
@@ -96,10 +98,10 @@ export class BotEngine {
       if (isReactivationCommand(message.text)) {
         logger.info({ conversationId: message.conversationId }, "Handoff desactivado por comando del cliente");
         session.handedOffUntil = null;
-        session.state = BotState.MAIN_MENU;
+        session.state = startState();
         session.updatedAt = now.toISOString();
         await messageLog?.logIncoming(message, session.state);
-        const reply = await this.transition(session, message, BotState.MAIN_MENU);
+        const reply = await this.transition(session, message, startState());
         await this.safeSaveSession(session);
         await messageLog?.logOutgoing(message, reply.messages, session.state);
         return reply;
@@ -152,18 +154,24 @@ export class BotEngine {
     }
   }
 
-  /** Primer mensaje de una conversación nueva (o expirada): saludo + menú principal. */
+  /** Primer mensaje de una conversación nueva (o expirada): saludo + menú inicial. */
   private async startConversation(session: Session, message: IncomingMessage): Promise<BotReply> {
     await this.identifyContact(session, message);
+    const start = startState();
+    session.state = start;
     const ctx = { session, message, services: this.deps.services };
-    const intro = await getHandler(BotState.MAIN_MENU).enter(ctx);
+    const greeting = welcomeLine(this.deps.services.config.BOT_NAME, session.contact?.displayName);
 
-    // Si el primer mensaje ya es una opción válida del menú ("A", "balanza"), la respetamos.
-    const result = await getHandler(BotState.MAIN_MENU).handle(ctx);
-    if (result.nextState) {
-      return this.transition(session, message, result.nextState, [intro[0]!.split("\n\n")[0]!]);
+    // Si el primer mensaje ya es una opción válida del menú inicial ("2", "chofer"), la respetamos.
+    const result = await getHandler(start).handle(ctx);
+    if (result.nextState && result.nextState !== start) {
+      const reply = await this.transition(session, message, result.nextState);
+      return { messages: [greeting, ...reply.messages] };
     }
-    return { messages: intro };
+
+    const entry = await getHandler(start).enter(ctx);
+    const [first, ...rest] = entry;
+    return { messages: [`${greeting}\n\n${first ?? ""}`.trim(), ...rest] };
   }
 
   private async dispatch(session: Session, message: IncomingMessage): Promise<BotReply> {
@@ -172,9 +180,12 @@ export class BotEngine {
     const command = detectGlobalCommand(message.text);
     switch (command) {
       case "MAIN_MENU":
-        return this.transition(session, message, BotState.MAIN_MENU);
-      case "BACK":
-        return this.transition(session, message, PARENT_STATE[session.state]);
+        return this.transition(session, message, startState());
+      case "BACK": {
+        // Si el menú principal está salteado (una sola opción), "volver" no debe caer en él.
+        const parent = PARENT_STATE[session.state];
+        return this.transition(session, message, parent === BotState.MAIN_MENU ? startState() : parent);
+      }
       case "HELP":
         return { messages: [helpText(this.deps.services.config.HANDOFF_ENABLED)] };
       case "HANDOFF": {

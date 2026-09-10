@@ -43,27 +43,38 @@ export const BALANZA_MENU: Menu = {
       key: "1",
       label: "Carga de Documentación",
       hint: "Dudas para cargar en la página web: qué poner en cada campo, formatos, rechazos",
-      aliases: ["carga", "carga de documentacion", "documentacion", "cargar", "a"],
+      aliases: ["carga", "carga de documentacion", "documentacion", "cargar"],
       target: BotState.CARGA_DOC,
     },
     {
       key: "2",
       label: "Documentación de Chofer",
       hint: "Consultá acá mismo los vencimientos de un chofer con su DNI",
-      aliases: ["chofer", "choferes", "documentacion de chofer", "dni", "b"],
+      aliases: ["chofer", "choferes", "documentacion de chofer", "dni"],
       target: BotState.CHOFER_DNI,
     },
     {
       key: "3",
       label: "Documentación de Camión o Acoplado",
       hint: "Consultá acá mismo los vencimientos de un vehículo con su patente",
-      aliases: ["camion", "camiones", "acoplado", "acoplados", "patente", "dominio", "vehiculo", "c"],
+      aliases: ["camion", "camiones", "acoplado", "acoplados", "patente", "dominio", "vehiculo"],
       target: BotState.CAMION_DOMINIO,
     },
     { key: "0", label: "Volver al menú principal", aliases: ["volver", "menu", "atras"], target: BotState.MAIN_MENU },
   ],
   footer: "Respondé con el número de la opción.",
 };
+
+/**
+ * Estado inicial de una conversación. Mientras el menú principal tenga UNA sola
+ * opción real (BALANZA), se saltea y se arranca directo en ella — mostrar un
+ * menú de una opción con "a definir" es hacer elegir al pedo. Cuando B o C
+ * tengan destino, el menú principal vuelve a aparecer automáticamente.
+ */
+export function startState(): BotStateName {
+  const disponibles = MAIN_MENU.options.filter((o) => o.target !== null);
+  return disponibles.length === 1 ? disponibles[0]!.target! : BotState.MAIN_MENU;
+}
 
 /** Texto del menú listo para WhatsApp. */
 export function renderMenu(menu: Menu): string {

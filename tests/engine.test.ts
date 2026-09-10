@@ -54,44 +54,48 @@ describe("BotEngine — menús", () => {
     t = setup();
   });
 
-  it("saluda y muestra el menú principal en el primer mensaje", async () => {
+  it("saluda y va directo al menú BALANZA (el principal se saltea con una sola opción)", async () => {
     const reply = await t.send("hola");
-    expect(reply.messages.join("\n")).toContain("¿Usted desea consultar por?");
-    expect(reply.messages.join("\n")).toContain("*A)* BALANZA");
-    expect((await t.sessions.get("c1"))?.state).toBe(BotState.MAIN_MENU);
-  });
-
-  it("si el primer mensaje ya es una opción válida, la toma", async () => {
-    const reply = await t.send("A");
-    expect(reply.messages.join("\n")).toContain("BALANZA");
-    expect(reply.messages.join("\n")).toContain("*1)* Carga de Documentación");
+    const text = reply.messages.join("\n");
+    expect(text).toContain("Soy *Enri*");
+    expect(text).toContain("¿Qué necesitás?");
+    expect(text).toContain("*1)* Carga de Documentación");
+    expect(text).not.toContain("A definir");
     expect((await t.sessions.get("c1"))?.state).toBe(BotState.BALANZA_MENU);
   });
 
-  it("A -> menú BALANZA; opción no disponible avisa", async () => {
-    await t.send("hola");
-    const b = await t.send("B");
-    expect(b.messages[0]).toContain("todavía no está disponible");
-    const a = await t.send("balanza");
-    expect(a.messages.join("\n")).toContain("Documentación de Chofer");
+  it("si el primer mensaje ya es una opción válida, la toma (saludo incluido)", async () => {
+    const reply = await t.send("2");
+    const text = reply.messages.join("\n");
+    expect(text).toContain("Soy *Enri*");
+    expect(text).toContain("DNI del chofer");
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.CHOFER_DNI);
+  });
+
+  it("el menú muestra las aclaraciones de cada opción", async () => {
+    const reply = await t.send("hola");
+    const text = reply.messages.join("\n");
+    expect(text).toContain("página web");
+    expect(text).toContain("con su DNI");
+    expect(text).toContain("con su patente");
   });
 
   it("opción inválida repite el menú", async () => {
     await t.send("hola");
     const reply = await t.send("xyz");
     expect(reply.messages[0]).toContain("No entendí");
-    expect(reply.messages[1]).toContain("*A)* BALANZA");
+    expect(reply.messages[1]).toContain("*1)* Carga de Documentación");
   });
 
-  it("volver y menu navegan hacia atrás", async () => {
+  it("volver y menu llevan al menú BALANZA (no al principal salteado)", async () => {
     await t.send("hola");
-    await t.send("A");
     await t.send("1");
     expect((await t.sessions.get("c1"))?.state).toBe(BotState.CARGA_DOC);
     await t.send("volver");
     expect((await t.sessions.get("c1"))?.state).toBe(BotState.BALANZA_MENU);
+    await t.send("1");
     await t.send("menu");
-    expect((await t.sessions.get("c1"))?.state).toBe(BotState.MAIN_MENU);
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.BALANZA_MENU);
   });
 
   it("modo automático (default): 'persona' NO deriva; el bot explica y sigue atendiendo", async () => {
@@ -100,7 +104,7 @@ describe("BotEngine — menús", () => {
     expect(reply.handoff).toBeUndefined();
     expect(reply.messages[0]).toContain("automática");
     const next = await t.send("menu");
-    expect(next.messages.join("\n")).toContain("¿Usted desea consultar por?");
+    expect(next.messages.join("\n")).toContain("¿Qué necesitás?");
   });
 
   it("con HANDOFF_ENABLED=true, 'persona' deriva y silencia al bot", async () => {
@@ -132,7 +136,6 @@ describe("BotEngine — Carga de Documentación", () => {
   it("responde preguntas libres con la IA en modo 'carga' y mantiene historial", async () => {
     const t = setup();
     await t.send("hola");
-    await t.send("A");
     await t.send("1");
     const r1 = await t.send("¿Qué pongo en DNI?");
     expect(r1.messages[0]).toBe("IA(carga): ¿Qué pongo en DNI?");
@@ -145,7 +148,7 @@ describe("BotEngine — Carga de Documentación", () => {
 describe("BotEngine — Documentación de Chofer", () => {
   it("pide DNI, consulta SeaLink y muestra vencimientos", async () => {
     const t = setup();
-    await t.send("A");
+    await t.send("hola");
     const ask = await t.send("2");
     expect(ask.messages[0]).toContain("DNI del chofer");
 
@@ -161,7 +164,7 @@ describe("BotEngine — Documentación de Chofer", () => {
 
   it("DNI inválido o inexistente da un mensaje claro", async () => {
     const t = setup();
-    await t.send("A");
+    await t.send("hola");
     await t.send("2");
     expect((await t.send("abc")).messages[0]).toContain("DNI");
     expect((await t.send("28885099")).messages[0]).toContain("No encontré ningún chofer");
@@ -170,7 +173,7 @@ describe("BotEngine — Documentación de Chofer", () => {
 
   it("en modo QA responde con IA usando los datos y permite consultar otro DNI", async () => {
     const t = setup();
-    await t.send("A");
+    await t.send("hola");
     await t.send("2");
     await t.send("35413889");
     const qa = await t.send("¿Tiene la ART vigente?");
@@ -186,7 +189,7 @@ describe("BotEngine — Documentación de Chofer", () => {
 describe("BotEngine — Documentación de Camión", () => {
   it("consulta por patente y distingue vencido / sin fecha", async () => {
     const t = setup();
-    await t.send("A");
+    await t.send("hola");
     await t.send("3");
     const r = await t.send("3437 bxl");
     const text = r.messages.join("\n");
@@ -198,7 +201,7 @@ describe("BotEngine — Documentación de Camión", () => {
 
   it("patente inexistente", async () => {
     const t = setup();
-    await t.send("A");
+    await t.send("hola");
     await t.send("3");
     expect((await t.send("ZZ999ZZ")).messages[0]).toContain("No encontré");
   });
@@ -214,20 +217,20 @@ describe("BotEngine — sesiones", () => {
       sessions,
     });
     const send = (text: string) => engine.handle({ id: text, conversationId: "c9", accountId: "1", text, attachments: [] });
-    await send("A");
+    await send("hola");
     await send("1");
     expect((await sessions.get("c9"))?.state).toBe(BotState.CARGA_DOC);
 
     now = new Date("2026-08-26T17:00:00Z"); // 2 horas después
     const reply = await send("hola");
-    expect(reply.messages.join("\n")).toContain("¿Usted desea consultar por?");
-    expect((await sessions.get("c9"))?.state).toBe(BotState.MAIN_MENU);
+    expect(reply.messages.join("\n")).toContain("¿Qué necesitás?");
+    expect((await sessions.get("c9"))?.state).toBe(BotState.BALANZA_MENU);
   });
 
   it("procesa en orden mensajes concurrentes de la misma conversación", async () => {
     const t = setup();
     const [a, b, c] = await Promise.all([t.send("hola"), t.send("A"), t.send("2")]);
-    expect(a.messages.join("\n")).toContain("¿Usted desea consultar por?");
+    expect(a.messages.join("\n")).toContain("¿Qué necesitás?");
     expect(b.messages.join("\n")).toContain("Carga de Documentación");
     expect(c.messages[0]).toContain("DNI del chofer");
   });
