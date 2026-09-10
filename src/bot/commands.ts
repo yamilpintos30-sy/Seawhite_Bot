@@ -22,6 +22,9 @@ const COMMANDS: Array<{ command: GlobalCommand; words: string[] }> = [
 /** "quiero hablar con una persona", "me pasás con un operador", "necesito un humano"... */
 const HANDOFF_PHRASE = /\b(hablar|comunicar|contactar|pasa(r|me|s)|quiero|necesito|prefiero)\b.*\b(alguien|persona|humano|agente|operador|asesor)\b/;
 
+/** "quiero volver al menú principal", "llevame al menú", "salir al inicio"... */
+const MENU_PHRASE = /\b(volver|volveme|regresar|salir|ir|llevame|mostra(r|me)?|quiero)\b.*\b(menu|inicio)\b/;
+
 export function detectGlobalCommand(input: string): GlobalCommand | undefined {
   const text = normalizeText(input);
   if (!text || text.length > 60) return undefined; // frases largas son consultas, no comandos
@@ -29,6 +32,7 @@ export function detectGlobalCommand(input: string): GlobalCommand | undefined {
     if (words.includes(text)) return command;
   }
   if (HANDOFF_PHRASE.test(text)) return "HANDOFF";
+  if (MENU_PHRASE.test(text)) return "MAIN_MENU";
   return undefined;
 }
 

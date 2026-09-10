@@ -103,6 +103,16 @@ describe("menús y comandos", () => {
     expect(detectGlobalCommand("ayuda")).toBe("HELP");
     expect(detectGlobalCommand("¿qué pongo en el menú de documentación?")).toBeUndefined();
   });
+
+  it("frases de menú (visto en producción): 'quiero volver al menu principal'", () => {
+    expect(detectGlobalCommand("quiero volver al menu principal")).toBe("MAIN_MENU");
+    expect(detectGlobalCommand("llevame al menú")).toBe("MAIN_MENU");
+    expect(detectGlobalCommand("volver al inicio")).toBe("MAIN_MENU");
+    expect(detectGlobalCommand("mostrame el menu")).toBe("MAIN_MENU");
+    // Consultas legítimas que mencionan "menú" NO son comandos.
+    expect(detectGlobalCommand("¿qué pongo en el menú de documentación?")).toBeUndefined();
+    expect(detectGlobalCommand("en el menu aprobados no aparece el chofer")).toBeUndefined();
+  });
 });
 
 describe("formato WhatsApp", () => {

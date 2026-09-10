@@ -52,9 +52,18 @@ export interface DynamicContextInput {
   data?: Record<string, unknown>;
 }
 
+/**
+ * El asistente vive dentro de un bot con menús: tiene que saberlo para orientar
+ * al usuario en la navegación en vez de negar que el menú existe.
+ */
+const NAVIGATION_CONTEXT = `NAVEGACIÓN DE ESTE CHAT (existe de verdad, vos formás parte de este bot):
+- Escribiendo "menu" el usuario vuelve al menú principal; con "volver" va al menú anterior. Estos comandos los maneja el sistema automáticamente.
+- Menú principal: A) BALANZA (B y C todavía no están disponibles). Dentro de BALANZA: 1) Carga de Documentación (este modo de preguntas libres), 2) Documentación de Chofer (consulta vencimientos reales por DNI), 3) Documentación de Camión o Acoplado (consulta vencimientos reales por patente).
+- Si el usuario quiere ir al menú, consultar vencimientos de un chofer o de un vehículo, decile qué escribir (por ejemplo: "escribí *menu*" o "escribí *volver* y elegí la opción 2"). NUNCA digas que no hay menú o que no podés mostrarlo.`;
+
 /** Arma el mensaje de sistema dinámico (se agrega al final de la conversación, no al prefijo). */
 export function buildDynamicContext(input: DynamicContextInput): string {
-  const lines = [MODE_INSTRUCTIONS[input.mode], `FECHA DE HOY: ${input.todayIso} (${input.todayLong}).`];
+  const lines = [MODE_INSTRUCTIONS[input.mode], NAVIGATION_CONTEXT, `FECHA DE HOY: ${input.todayIso} (${input.todayLong}).`];
   if (input.data) {
     lines.push(`DATOS DEL SISTEMA SEALINK (JSON):\n${JSON.stringify(input.data, null, 2)}`);
   }
