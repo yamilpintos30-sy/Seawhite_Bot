@@ -48,9 +48,13 @@ export class BotEngine {
     const previous = this.queues.get(message.conversationId) ?? Promise.resolve();
     const run = previous.catch(() => undefined).then(() => this.process(message));
     this.queues.set(message.conversationId, run);
-    run.finally(() => {
-      if (this.queues.get(message.conversationId) === run) this.queues.delete(message.conversationId);
-    });
+    // El .finally crea una promesa NUEVA: sin el .catch final, un error acá era
+    // un "unhandled rejection" que tiraba abajo TODO el proceso (visto en Render).
+    run
+      .finally(() => {
+        if (this.queues.get(message.conversationId) === run) this.queues.delete(message.conversationId);
+      })
+      .catch(() => undefined);
     return run;
   }
 
@@ -61,11 +65,11 @@ export class BotEngine {
 
   /** Marca la conversación como tomada por una persona. */
   async markHandedOff(conversationId: string, accountId: string): Promise<void> {
-    const { services, sessions } = this.deps;
-    const session = (await sessions.get(conversationId)) ?? this.newSession(conversationId, accountId);
+    const { services } = this.deps;
+    const session = (await this.safeGetSession(conversationId)) ?? this.newSession(conversationId, accountId);
     session.handedOffUntil = new Date(services.now().getTime() + services.config.HANDOFF_SILENCE_MINUTES * 60_000).toISOString();
     session.updatedAt = services.now().toISOString();
-    await sessions.save(session);
+    await this.safeSaveSession(session);
   }
 
   // ---------------------------------------------------------------------------
@@ -75,7 +79,7 @@ export class BotEngine {
     const { logger, config } = services;
     const now = services.now();
 
-    let session = await sessions.get(message.conversationId);
+    let session = await this.safeGetSession(message.conversationId);
     let isNew = false;
 
     if (!session) {
@@ -96,7 +100,7 @@ export class BotEngine {
         session.updatedAt = now.toISOString();
         await messageLog?.logIncoming(message, session.state);
         const reply = await this.transition(session, message, BotState.MAIN_MENU);
-        await sessions.save(session);
+        await this.safeSaveSession(session);
         await messageLog?.logOutgoing(message, reply.messages, session.state);
         return reply;
       }
@@ -118,9 +122,34 @@ export class BotEngine {
     }
 
     session.updatedAt = services.now().toISOString();
-    await sessions.save(session);
+    await this.safeSaveSession(session);
     await messageLog?.logOutgoing(message, reply.messages, session.state);
     return reply;
+  }
+
+  /**
+   * Lectura/escritura de sesión que NUNCA rompe la conversación: si Supabase
+   * falla (mal configurado, caído), se loguea y se sigue con una sesión nueva
+   * en memoria. El usuario recibe su respuesta igual.
+   */
+  private async safeGetSession(conversationId: string): Promise<Session | null> {
+    try {
+      return await this.deps.sessions.get(conversationId);
+    } catch (err) {
+      this.deps.services.logger.error({ err, conversationId }, "No se pudo LEER la sesión (¿Supabase mal configurado?); se continúa con sesión nueva");
+      return null;
+    }
+  }
+
+  private async safeSaveSession(session: Session): Promise<void> {
+    try {
+      await this.deps.sessions.save(session);
+    } catch (err) {
+      this.deps.services.logger.error(
+        { err, conversationId: session.conversationId },
+        "No se pudo GUARDAR la sesión (¿Supabase mal configurado?); la conversación sigue pero sin memoria persistente",
+      );
+    }
   }
 
   /** Primer mensaje de una conversación nueva (o expirada): saludo + menú principal. */

@@ -6,6 +6,15 @@ async function main(): Promise<void> {
   const container = buildContainer();
   const { config, logger, engine, chatwoot, knowledge } = container;
 
+  // Red de seguridad: ninguna promesa perdida ni excepción suelta debe tumbar
+  // el proceso entero (un bot caído es peor que un error logueado).
+  process.on("unhandledRejection", (reason) => {
+    logger.error({ err: reason }, "Promesa sin capturar (unhandledRejection); el bot sigue");
+  });
+  process.on("uncaughtException", (err) => {
+    logger.error({ err }, "Excepción no capturada (uncaughtException); el bot sigue");
+  });
+
   // Cargar la base de conocimiento al inicio para detectar errores temprano.
   const kb = await knowledge.get();
   logger.info({ files: kb.files }, "Base de conocimiento lista");
