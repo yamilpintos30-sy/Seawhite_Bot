@@ -12,6 +12,8 @@ services:
     healthCheckPath: /health
     autoDeploy: true # cada push a main redespliega solo
     envVars:
+      - key: BOT_NAME
+        value: Enri
       - key: NODE_VERSION
         value: "22"
       - key: NODE_ENV

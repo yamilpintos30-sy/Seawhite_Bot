@@ -14,6 +14,10 @@ const booleanFromEnv = z
   .transform((v) => (v === undefined ? undefined : ["1", "true", "yes", "si", "sí"].includes(v.toLowerCase())));
 
 const schema = z.object({
+  // --- Identidad ---
+  /** Nombre del asistente (aparece en el saludo y en la personalidad de la IA). */
+  BOT_NAME: z.string().default("Enri"),
+
   // --- Servidor HTTP ---
   PORT: z.coerce.number().int().positive().default(3000),
   LOG_LEVEL: z.enum(["trace", "debug", "info", "warn", "error", "fatal"]).default("info"),

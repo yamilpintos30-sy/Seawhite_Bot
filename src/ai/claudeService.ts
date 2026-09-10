@@ -14,7 +14,7 @@ import type { AppConfig } from "../config.js";
 import { formatIso, formatLong, todayInTimeZone } from "../utils/dates.js";
 import type { Logger } from "../utils/logger.js";
 import type { KnowledgeStore } from "./knowledge.js";
-import { BASE_SYSTEM, buildDynamicContext } from "./prompts.js";
+import { buildBaseSystem, buildDynamicContext } from "./prompts.js";
 import type { AiAnswerInput, AiAnswerResult, AiAttachment, AiService } from "./types.js";
 
 export class AiUnavailableError extends Error {
@@ -54,7 +54,7 @@ export class ClaudeService implements AiService {
     });
 
     const system: Anthropic.Beta.Messages.BetaTextBlockParam[] = [
-      { type: "text", text: BASE_SYSTEM },
+      { type: "text", text: buildBaseSystem(this.config.BOT_NAME) },
       {
         type: "text",
         text: knowledge.text,
