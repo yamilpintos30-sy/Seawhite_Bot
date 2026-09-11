@@ -27,12 +27,13 @@ const schema = z.object({
   WELCOME_IMAGE_DELAY_MS: z.coerce.number().int().min(0).default(2500),
   /**
    * Formato del saludo enriquecido:
-   *   "card"  = EXPERIMENTAL: un solo mensaje tipo tarjeta (imagen+texto+botones)
-   *             vía content_type "cards" de Chatwoot. Si la API lo rechaza, cae
-   *             solo a "split". Requiere URL pública (PUBLIC_URL o Render).
-   *   "split" = dos mensajes: imagen con el saludo y luego los botones.
+   *   "split" = dos mensajes: imagen con el saludo y luego los botones (DEFAULT).
+   *   "card"  = un solo mensaje tipo tarjeta vía content_type "cards" de Chatwoot.
+   *             PROBADO el 2026-09-11: Chatwoot lo acepta pero el canal WhatsApp
+   *             descarta imagen y botones (llega solo el texto). No usar salvo
+   *             que Chatwoot agregue soporte en una versión futura.
    */
-  WELCOME_STYLE: z.enum(["card", "split"]).default("card"),
+  WELCOME_STYLE: z.enum(["card", "split"]).default("split"),
   /** URL pública del bot (para servir la imagen de la card). En Render se toma sola de RENDER_EXTERNAL_URL. */
   PUBLIC_URL: z.string().url().optional(),
 
