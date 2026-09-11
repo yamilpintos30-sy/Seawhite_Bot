@@ -103,19 +103,52 @@ export class ChatwootClient {
     });
   }
 
-  /** Imagen de bienvenida con epígrafe. Si la imagen no está disponible, cae a texto. */
-  async sendWelcomeImage(conversationId: string, caption: string): Promise<void> {
+  /**
+   * Imagen de bienvenida con epígrafe. Si la imagen no está disponible, cae a texto.
+   * Devuelve el id del mensaje creado (para poder esperar su despacho) o null.
+   */
+  async sendWelcomeImage(conversationId: string, caption: string): Promise<string | null> {
     const image = await this.loadWelcomeImage();
     if (!image) {
       await this.sendMessage(conversationId, caption);
-      return;
+      return null;
     }
     sentTracker.record(conversationId, caption);
     const form = new FormData();
     form.append("content", caption);
     form.append("message_type", "outgoing");
     form.append("attachments[]", new Blob([new Uint8Array(image)], { type: "image/png" }), "enri.png");
-    await this.requestForm(`/conversations/${conversationId}/messages`, form);
+    const created = (await this.requestForm(`/conversations/${conversationId}/messages`, form)) as { id?: number };
+    return created?.id !== undefined ? String(created.id) : null;
+  }
+
+  /**
+   * Espera a que un mensaje deje el estado "progress" (es decir, que Chatwoot
+   * ya lo haya despachado a WhatsApp). Es la forma correcta de garantizar el
+   * orden imagen -> botones: una pausa fija adivina, esto pregunta.
+   * Devuelve el estado final visto, o "timeout".
+   */
+  async waitMessageDispatched(conversationId: string, messageId: string, timeoutMs = 10_000): Promise<string> {
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      try {
+        const data = (await this.send(`/conversations/${conversationId}/messages`, {}, undefined, "GET")) as {
+          payload?: Array<{ id?: number; status?: string }>;
+        };
+        const msg = data?.payload?.find((m) => String(m.id) === messageId);
+        const status = msg?.status ?? "";
+        if (status && status !== "progress") {
+          this.opts.logger.debug({ conversationId, messageId, status }, "Imagen del saludo despachada");
+          return status;
+        }
+      } catch (err) {
+        this.opts.logger.warn({ err, conversationId }, "No se pudo consultar el estado del mensaje; se sigue con la pausa fija");
+        return "unknown";
+      }
+      await new Promise((r) => setTimeout(r, 600));
+    }
+    this.opts.logger.warn({ conversationId, messageId }, "La imagen del saludo sigue en progreso tras el timeout");
+    return "timeout";
   }
 
   private async loadWelcomeImage(): Promise<Buffer | null> {
@@ -147,13 +180,13 @@ export class ChatwootClient {
     return this.send(path, {}, form);
   }
 
-  private async send(path: string, headers: Record<string, string>, body: string | FormData): Promise<unknown> {
+  private async send(path: string, headers: Record<string, string>, body: string | FormData | undefined, method: "POST" | "GET" = "POST"): Promise<unknown> {
     const url = `${this.opts.baseUrl.replace(/\/$/, "")}/api/v1/accounts/${this.opts.accountId}${path}`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.opts.timeoutMs ?? 15000);
     try {
       const res = await fetch(url, {
-        method: "POST",
+        method,
         headers: { ...headers, api_access_token: this.opts.apiToken },
         body,
         signal: controller.signal,

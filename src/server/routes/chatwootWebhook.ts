@@ -109,11 +109,12 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
       // Versión enriquecida: foto de Enri y/o botones interactivos.
       for (const [i, item] of reply.rich.entries()) {
         if (item.kind === "image") {
-          await chatwoot.sendWelcomeImage(message.conversationId, item.caption);
-          // La imagen se procesa en el camino a WhatsApp; sin esta pausa el
-          // siguiente mensaje la pasa de largo y llega primero (desordenado).
-          if (i < reply.rich.length - 1 && config.WELCOME_IMAGE_DELAY_MS > 0) {
-            await new Promise((r) => setTimeout(r, config.WELCOME_IMAGE_DELAY_MS));
+          const imageMessageId = await chatwoot.sendWelcomeImage(message.conversationId, item.caption);
+          if (i < reply.rich.length - 1) {
+            // Garantizar el orden imagen -> botones: primero esperar a que
+            // Chatwoot despache la imagen a WhatsApp, después una pausa corta.
+            if (imageMessageId) await chatwoot.waitMessageDispatched(message.conversationId, imageMessageId);
+            if (config.WELCOME_IMAGE_DELAY_MS > 0) await new Promise((r) => setTimeout(r, config.WELCOME_IMAGE_DELAY_MS));
           }
         } else if (item.kind === "buttons") {
           await chatwoot.sendButtons(message.conversationId, item.text, item.buttons);
