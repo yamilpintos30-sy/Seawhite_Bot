@@ -56,6 +56,31 @@ export class ChatwootClient {
     });
   }
 
+  /**
+   * EXPERIMENTAL: tarjeta única (imagen + texto + botones) vía content_type
+   * "cards". Documentado por Chatwoot para Facebook; en WhatsApp depende de la
+   * versión. El caller debe tener un plan B si esto lanza error.
+   */
+  async sendWelcomeCard(conversationId: string, caption: string, buttons: ButtonSpec[], mediaUrl: string): Promise<void> {
+    sentTracker.record(conversationId, caption);
+    await this.request(`/conversations/${conversationId}/messages`, {
+      content: caption,
+      content_type: "cards",
+      content_attributes: {
+        items: [
+          {
+            media_url: mediaUrl,
+            title: "Enri ⚓",
+            description: caption,
+            actions: buttons.map((b) => ({ type: "postback", text: b.title, payload: b.payload })),
+          },
+        ],
+      },
+      message_type: "outgoing",
+      private: false,
+    });
+  }
+
   /** Imagen de bienvenida con epígrafe. Si la imagen no está disponible, cae a texto. */
   async sendWelcomeImage(conversationId: string, caption: string): Promise<void> {
     const image = await this.loadWelcomeImage();

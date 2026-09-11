@@ -25,6 +25,16 @@ const schema = z.object({
    * botones la pasan de largo y llegan primero (visto en producción).
    */
   WELCOME_IMAGE_DELAY_MS: z.coerce.number().int().min(0).default(2500),
+  /**
+   * Formato del saludo enriquecido:
+   *   "card"  = EXPERIMENTAL: un solo mensaje tipo tarjeta (imagen+texto+botones)
+   *             vía content_type "cards" de Chatwoot. Si la API lo rechaza, cae
+   *             solo a "split". Requiere URL pública (PUBLIC_URL o Render).
+   *   "split" = dos mensajes: imagen con el saludo y luego los botones.
+   */
+  WELCOME_STYLE: z.enum(["card", "split"]).default("card"),
+  /** URL pública del bot (para servir la imagen de la card). En Render se toma sola de RENDER_EXTERNAL_URL. */
+  PUBLIC_URL: z.string().url().optional(),
 
   // --- Servidor HTTP ---
   PORT: z.coerce.number().int().positive().default(3000),
