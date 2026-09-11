@@ -102,6 +102,21 @@ const schema = z.object({
   /** Largo máximo del mensaje que se envía a la IA (se recorta el excedente). */
   AI_MAX_INPUT_CHARS: z.coerce.number().int().positive().default(2000),
 
+  // --- Ritmo de conversación ---
+  /**
+   * Buffer de mensajes: el bot espera N segundos desde el ÚLTIMO mensaje del
+   * usuario y responde todo junto una sola vez (mucha gente escribe la consulta
+   * en varios renglones). Botones, opciones de menú, comandos, DNI y patentes
+   * responden al instante. 0 = sin buffer.
+   */
+  DEBOUNCE_SECONDS: z.coerce.number().int().min(0).default(20),
+  /** Minutos tras la última respuesta para preguntar "¿necesitás algo más?". 0 = off. */
+  FOLLOWUP_ASK_MINUTES: z.coerce.number().min(0).default(3),
+  /** Minutos para la despedida ("espero haberte sido útil..."). 0 = off. */
+  FOLLOWUP_BYE_MINUTES: z.coerce.number().min(0).default(10),
+  /** Minutos para resetear la conversación (el próximo mensaje arranca de cero). 0 = off. */
+  FOLLOWUP_RESET_MINUTES: z.coerce.number().min(0).default(30),
+
   // --- Sesiones ---
   /** Minutos de inactividad tras los cuales la conversación vuelve al menú principal. */
   SESSION_TTL_MINUTES: z.coerce.number().int().positive().default(60),

@@ -16,6 +16,8 @@ import type { ChatwootWebhookPayload } from "../../channels/chatwoot/types.js";
 import { activeStatuses, type AppConfig } from "../../config.js";
 import type { Logger } from "../../utils/logger.js";
 import { splitForWhatsApp } from "../../utils/text.js";
+import { MessageDebouncer } from "../debounce.js";
+import { FollowupScheduler } from "../followups.js";
 
 export interface WebhookDeps {
   config: AppConfig;
@@ -44,6 +46,24 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
   const router = Router();
   const recent = new RecentIds();
   const statuses = activeStatuses(config);
+
+  // Buffer: juntar los mensajes del usuario y responder una sola vez.
+  const debouncer = new MessageDebouncer(config.DEBOUNCE_SECONDS * 1000, (merged) => {
+    handleMessage(merged).catch((err) => logger.error({ err, conversationId: merged.conversationId }, "Error procesando mensaje"));
+  });
+
+  // Seguimientos por inactividad (¿algo más? / despedida / reset).
+  const followups = new FollowupScheduler({
+    askMs: Math.round(config.FOLLOWUP_ASK_MINUTES * 60_000),
+    byeMs: Math.round(config.FOLLOWUP_BYE_MINUTES * 60_000),
+    resetMs: Math.round(config.FOLLOWUP_RESET_MINUTES * 60_000),
+    sendText: (conversationId, text) => chatwoot.sendMessage(conversationId, text),
+    resetConversation: async (conversationId) => {
+      debouncer.clear(conversationId);
+      await engine.reset(conversationId);
+    },
+    logger,
+  });
 
   router.post("/webhooks/chatwoot", (req: Request, res: Response) => {
     const token = (req.query.token as string | undefined) ?? (req.header("x-webhook-token") ?? undefined);
@@ -96,7 +116,10 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
       return;
     }
 
-    handleMessage(message).catch((err) => logger.error({ err, conversationId: message.conversationId }, "Error procesando mensaje"));
+    // El usuario escribió: se cancelan los seguimientos pendientes y el mensaje
+    // entra al buffer (o se procesa al instante si es botón/comando/DNI/patente).
+    followups.cancel(message.conversationId);
+    debouncer.push(message);
   });
 
   async function handleMessage(message: Parameters<BotEngine["handle"]>[0]): Promise<void> {
@@ -127,6 +150,10 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
       await chatwoot.sendMessages(message.conversationId, parts);
     }
     await maybeHandoff(reply, message.conversationId);
+    // Con la respuesta enviada, arranca la cadena de seguimientos por inactividad.
+    if (!reply.handoff && (reply.messages.length > 0 || (reply.rich?.length ?? 0) > 0)) {
+      followups.scheduleAfterReply(message.conversationId);
+    }
   }
 
   async function maybeHandoff(reply: Awaited<ReturnType<BotEngine["handle"]>>, conversationId: string): Promise<void> {
@@ -178,12 +205,16 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
       return;
     }
     logger.info({ conversationId: parsed.conversationId, senderId: parsed.senderId }, "Vendedor humano respondió: el bot se silencia (handoff)");
+    followups.cancel(parsed.conversationId);
+    debouncer.clear(parsed.conversationId);
     await engine.markHandedOff(parsed.conversationId, parsed.accountId);
   }
 
   async function handleStatusChanged(conversationId: string, accountId: string, status: string, assigneeName?: string): Promise<void> {
     logger.info({ conversationId, status, assigneeName }, "Cambio de estado de conversación");
     if (status === "resolved") {
+      followups.cancel(conversationId);
+      debouncer.clear(conversationId);
       await engine.reset(conversationId);
     } else if (assigneeName) {
       // Un agente humano tomó la conversación: el bot se calla por un rato.

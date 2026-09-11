@@ -14,7 +14,7 @@
  */
 import type { MessageLog } from "../storage/messageLog.js";
 import type { SessionStore } from "../storage/sessionStore.js";
-import { nombreDePila } from "../utils/names.js";
+import { nombreCompleto } from "../utils/names.js";
 import { detectGlobalCommand, helpText } from "./commands.js";
 import { getHandler, PARENT_STATE } from "./handlers/index.js";
 import { welcomeLine } from "./handlers/menuHandlers.js";
@@ -274,7 +274,7 @@ export class BotEngine {
     try {
       const lookup = await services.sealink.consultarChoferPorTelefono(phone);
       if (lookup.found) {
-        const displayName = nombreDePila(lookup.razonSocial);
+        const displayName = nombreCompleto(lookup.razonSocial);
         session.contact = { ...session.contact, phone, displayName: displayName || undefined };
         services.logger.info({ conversationId: session.conversationId, displayName }, "Contacto identificado por teléfono en SeaLink");
       }

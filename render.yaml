@@ -57,6 +57,16 @@ services:
       - key: DAILY_LOOKUP_LIMIT
         value: "30"
 
+      # --- Ritmo de conversación ---
+      - key: DEBOUNCE_SECONDS
+        value: "20"
+      - key: FOLLOWUP_ASK_MINUTES
+        value: "3"
+      - key: FOLLOWUP_BYE_MINUTES
+        value: "10"
+      - key: FOLLOWUP_RESET_MINUTES
+        value: "30"
+
       # --- SeaLink (SOLO LECTURA) ---
       - key: SEALINK_BASE_URL
         value: https://api.seawhite.com.ar:9443

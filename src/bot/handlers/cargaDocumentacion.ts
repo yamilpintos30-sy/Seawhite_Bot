@@ -3,7 +3,7 @@
  * Preguntas libres respondidas con IA a partir de la base de conocimiento (`knowledge/`).
  */
 import { BotState, type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
-import { answerWithAi, HINT_NAVEGACION } from "./shared.js";
+import { answerWithAi, MENU_HINT } from "./shared.js";
 
 export const cargaDocumentacionHandler: StateHandler = {
   state: BotState.CARGA_DOC,
@@ -14,16 +14,12 @@ export const cargaDocumentacionHandler: StateHandler = {
       [
         "*Carga de Documentación* 📄",
         "",
-        "Ojo: la carga se hace en la *página web de SEA WHITE*, no por acá. Yo te ayudo con las dudas para que no te la rechacen. Por ejemplo:",
+        "Atención: la carga se hace en la *página web de SEA WHITE*, no por acá. Yo te ayudo con las dudas para que no te la rechacen. Por ejemplo:",
         "• _¿Qué pongo en el campo DNI?_",
         "• _¿Puedo subir una foto en PNG?_",
         "• _Me rechazaron la ART, ¿qué reviso?_",
         "",
-        "Si querés, también podés mandarme una captura o un PDF y lo miro.",
-        "",
-        "_(Para consultar vencimientos ya cargados, escribí *volver* y elegí la opción 2 o 3.)_",
-        "",
-        HINT_NAVEGACION,
+        MENU_HINT,
       ].join("\n"),
     ];
   },

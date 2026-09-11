@@ -138,7 +138,7 @@ describe("BotEngine — Carga de Documentación", () => {
     await t.send("hola");
     await t.send("1");
     const r1 = await t.send("¿Qué pongo en DNI?");
-    expect(r1.messages[0]).toBe("IA(carga): ¿Qué pongo en DNI?");
+    expect(r1.messages[0]).toContain("IA(carga): ¿Qué pongo en DNI?");
     await t.send("¿Y en teléfono?");
     expect(t.ai.calls[1]?.history).toHaveLength(2);
     expect(t.ai.calls[1]?.history[0]).toEqual({ role: "user", content: "¿Qué pongo en DNI?" });
@@ -177,7 +177,7 @@ describe("BotEngine — Documentación de Chofer", () => {
     await t.send("2");
     await t.send("35413889");
     const qa = await t.send("¿Tiene la ART vigente?");
-    expect(qa.messages[0]).toBe("IA(chofer): ¿Tiene la ART vigente?");
+    expect(qa.messages[0]).toContain("IA(chofer): ¿Tiene la ART vigente?");
     expect(t.ai.calls[0]?.data).toMatchObject({ dni: "35413889", nombre: "PEREZ JUAN" });
 
     const otro = await t.send("28885090");

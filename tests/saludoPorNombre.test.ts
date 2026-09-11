@@ -50,7 +50,7 @@ describe("Saludo por nombre (teléfono → SeaLink)", () => {
       attachments: [],
       sender: { name: "WhatsApp Name", phone: "+5492392526070" },
     });
-    expect(reply.messages[0]).toContain("¡Hola, Juan! 👋"); // "PEREZ, JUAN" -> "Juan"
+    expect(reply.messages[0]).toContain("¡Hola, Juan Perez! 👋"); // "PEREZ, JUAN" -> nombre completo
   });
 
   it("si el teléfono no figura, saludo genérico", async () => {

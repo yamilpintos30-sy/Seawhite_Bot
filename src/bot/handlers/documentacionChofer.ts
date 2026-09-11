@@ -8,7 +8,7 @@ import { clasificarVencimiento, lineaVencimiento, resumenGeneral, vencimientosPa
 import { looksLikeDni, normalizeDni } from "../../domain/validators.js";
 import { todayInTimeZone } from "../../utils/dates.js";
 import { BotState, type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
-import { answerWithAi, HINT_NAVEGACION, LIMITE_DIARIO_CONSULTAS, withinLookupLimit } from "./shared.js";
+import { answerWithAi, LIMITE_DIARIO_CONSULTAS, MENU_HINT, withinLookupLimit } from "./shared.js";
 
 const PEDIR_DNI = "Escribí el *DNI del chofer* (sólo números, sin puntos). Ejemplo: 30123456";
 
@@ -18,7 +18,7 @@ export const choferDniHandler: StateHandler = {
   enter(ctx: HandlerContext): string[] {
     ctx.session.history = [];
     ctx.session.context.chofer = undefined;
-    return [`*Documentación de Chofer* 👤\n\n${PEDIR_DNI}\n\n${HINT_NAVEGACION}`];
+    return [`*Documentación de Chofer* 👤\n\n${PEDIR_DNI}\n\n${MENU_HINT}`];
   },
 
   async handle(ctx: HandlerContext): Promise<HandlerResult> {
@@ -99,7 +99,7 @@ async function consultarChofer(ctx: HandlerContext): Promise<HandlerResult> {
   ].join("\n");
 
   return {
-    messages: [detalle, "¿Querés preguntarme algo sobre esta documentación? También podés escribir otro DNI.\n\n" + HINT_NAVEGACION],
+    messages: [detalle, "¿Querés preguntarme algo sobre esta documentación? También podés escribir otro DNI.\n\n" + MENU_HINT],
     nextState: BotState.CHOFER_QA,
     skipEnter: true,
   };
