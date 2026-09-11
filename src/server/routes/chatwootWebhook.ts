@@ -111,9 +111,9 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
         if (item.kind === "image") {
           const imageMessageId = await chatwoot.sendWelcomeImage(message.conversationId, item.caption);
           if (i < reply.rich.length - 1) {
-            // Garantizar el orden imagen -> botones: primero esperar a que
-            // Chatwoot despache la imagen a WhatsApp, después una pausa corta.
-            if (imageMessageId) await chatwoot.waitMessageDispatched(message.conversationId, imageMessageId);
+            // Garantizar el orden imagen -> botones: esperar la confirmación de
+            // ENTREGA de la imagen (delivered/read) antes del siguiente mensaje.
+            if (imageMessageId) await chatwoot.waitMessageDelivered(message.conversationId, imageMessageId);
             if (config.WELCOME_IMAGE_DELAY_MS > 0) await new Promise((r) => setTimeout(r, config.WELCOME_IMAGE_DELAY_MS));
           }
         } else if (item.kind === "buttons") {

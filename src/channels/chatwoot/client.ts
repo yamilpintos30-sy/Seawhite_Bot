@@ -123,32 +123,34 @@ export class ChatwootClient {
   }
 
   /**
-   * Espera a que un mensaje deje el estado "progress" (es decir, que Chatwoot
-   * ya lo haya despachado a WhatsApp). Es la forma correcta de garantizar el
-   * orden imagen -> botones: una pausa fija adivina, esto pregunta.
-   * Devuelve el estado final visto, o "timeout".
+   * Espera a que WhatsApp confirme la ENTREGA del mensaje (status delivered/read).
+   * Es la única garantía real de orden: "sent" solo significa que Chatwoot lo
+   * despachó, pero Meta puede seguir procesando la imagen y entregarla después
+   * que un mensaje posterior (visto en producción dos veces).
+   * Devuelve el último estado observado ("timeout..." si venció el plazo).
    */
-  async waitMessageDispatched(conversationId: string, messageId: string, timeoutMs = 10_000): Promise<string> {
+  async waitMessageDelivered(conversationId: string, messageId: string, timeoutMs = 15_000): Promise<string> {
     const deadline = Date.now() + timeoutMs;
+    let last = "";
     while (Date.now() < deadline) {
       try {
         const data = (await this.send(`/conversations/${conversationId}/messages`, {}, undefined, "GET")) as {
           payload?: Array<{ id?: number; status?: string }>;
         };
-        const msg = data?.payload?.find((m) => String(m.id) === messageId);
-        const status = msg?.status ?? "";
-        if (status && status !== "progress") {
-          this.opts.logger.debug({ conversationId, messageId, status }, "Imagen del saludo despachada");
-          return status;
+        const status = data?.payload?.find((m) => String(m.id) === messageId)?.status ?? "";
+        if (status !== last) {
+          this.opts.logger.info({ conversationId, messageId, status }, "Estado de la imagen del saludo");
+          last = status;
         }
+        if (status === "delivered" || status === "read" || status === "failed") return status;
       } catch (err) {
-        this.opts.logger.warn({ err, conversationId }, "No se pudo consultar el estado del mensaje; se sigue con la pausa fija");
+        this.opts.logger.warn({ err, conversationId }, "No se pudo consultar el estado del mensaje");
         return "unknown";
       }
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 700));
     }
-    this.opts.logger.warn({ conversationId, messageId }, "La imagen del saludo sigue en progreso tras el timeout");
-    return "timeout";
+    this.opts.logger.warn({ conversationId, messageId, last }, "La imagen del saludo no confirmó entrega dentro del plazo");
+    return `timeout:${last || "sin-estado"}`;
   }
 
   private async loadWelcomeImage(): Promise<Buffer | null> {

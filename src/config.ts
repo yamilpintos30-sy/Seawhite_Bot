@@ -20,11 +20,11 @@ const schema = z.object({
   /** Imagen del saludo (avatar). Ruta relativa al proyecto; vacío o inexistente = saludo sólo texto. */
   WELCOME_IMAGE: z.string().default("assets/enri-marinero.png"),
   /**
-   * Pausa (ms) después de enviar la imagen y antes del siguiente mensaje.
-   * La imagen tarda en procesarse camino a WhatsApp; sin esta pausa, los
-   * botones la pasan de largo y llegan primero (visto en producción).
+   * Pausa extra (ms) después de que la imagen del saludo confirme entrega y
+   * antes de mandar los botones. La espera principal es por estado
+   * delivered/read; esto es solo un colchón.
    */
-  WELCOME_IMAGE_DELAY_MS: z.coerce.number().int().min(0).default(2500),
+  WELCOME_IMAGE_DELAY_MS: z.coerce.number().int().min(0).default(800),
   /**
    * Formato del saludo enriquecido:
    *   "split" = dos mensajes: imagen con el saludo y luego los botones (DEFAULT).
