@@ -111,8 +111,21 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
   async function handleMessage(message: Parameters<BotEngine["handle"]>[0]): Promise<void> {
     logger.info({ conversationId: message.conversationId, text: message.text.slice(0, 80), attachments: message.attachments.length }, "Mensaje entrante");
     const reply = await engine.handle(message);
-    const parts = reply.messages.flatMap((m) => splitForWhatsApp(m));
-    await chatwoot.sendMessages(message.conversationId, parts);
+    if (reply.rich && reply.rich.length > 0) {
+      // Versión enriquecida: foto de Enri y/o botones interactivos.
+      for (const item of reply.rich) {
+        if (item.kind === "image") {
+          await chatwoot.sendWelcomeImage(message.conversationId, item.caption);
+        } else if (item.kind === "buttons") {
+          await chatwoot.sendButtons(message.conversationId, item.text, item.buttons);
+        } else {
+          await chatwoot.sendMessages(message.conversationId, splitForWhatsApp(item.text));
+        }
+      }
+    } else {
+      const parts = reply.messages.flatMap((m) => splitForWhatsApp(m));
+      await chatwoot.sendMessages(message.conversationId, parts);
+    }
     if (reply.handoff && config.HANDOFF_STATUS !== "none") {
       await chatwoot.setStatus(message.conversationId, config.HANDOFF_STATUS).catch((err) => logger.error({ err }, "No se pudo cambiar el estado de la conversación"));
     }

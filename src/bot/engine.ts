@@ -18,8 +18,17 @@ import { nombreDePila } from "../utils/names.js";
 import { detectGlobalCommand, helpText } from "./commands.js";
 import { getHandler, PARENT_STATE } from "./handlers/index.js";
 import { welcomeLine } from "./handlers/menuHandlers.js";
-import { startState } from "./menus.js";
-import { BotState, type BotReply, type BotServices, type BotStateName, type IncomingMessage, type Session } from "./types.js";
+import { BALANZA_MENU, MAIN_MENU, menuButtons, startState, type Menu } from "./menus.js";
+import { BotState, type BotReply, type BotServices, type BotStateName, type IncomingMessage, type RichOutbound, type Session } from "./types.js";
+
+/** Menú correspondiente a un estado, si el estado es un menú. */
+const MENU_OF_STATE: Partial<Record<BotStateName, Menu>> = {
+  [BotState.MAIN_MENU]: MAIN_MENU,
+  [BotState.BALANZA_MENU]: BALANZA_MENU,
+};
+
+/** Cuerpo corto del mensaje con botones (los botones ya dicen qué hace cada uno). */
+const BUTTONS_BODY = "¿Qué necesitás? Tocá una opción 👇\n\n_La carga de documentación se hace en la página web; acá resuelvo dudas y consulto vencimientos al instante._";
 
 const HANDOFF_MESSAGE = "Perfecto, le paso tu consulta a una persona del equipo de SEA WHITE para que te responda por acá. 🙌";
 const AUTOMATIC_ONLY_MESSAGE =
@@ -166,12 +175,27 @@ export class BotEngine {
     const result = await getHandler(start).handle(ctx);
     if (result.nextState && result.nextState !== start) {
       const reply = await this.transition(session, message, result.nextState);
-      return { messages: [greeting, ...reply.messages] };
+      return {
+        messages: [greeting, ...reply.messages],
+        rich: [{ kind: "image", caption: greeting }, ...(reply.rich ?? reply.messages.map((text) => ({ kind: "text" as const, text })))],
+      };
     }
 
     const entry = await getHandler(start).enter(ctx);
     const [first, ...rest] = entry;
-    return { messages: [`${greeting}\n\n${first ?? ""}`.trim(), ...rest] };
+    const messages = [`${greeting}\n\n${first ?? ""}`.trim(), ...rest];
+
+    // Versión enriquecida del saludo: la foto de Enri con el saludo como epígrafe
+    // y, si el estado inicial es un menú, los botones.
+    const rich: RichOutbound[] = [{ kind: "image", caption: greeting }];
+    const menu = MENU_OF_STATE[start];
+    const buttons = menu ? menuButtons(menu) : [];
+    if (buttons.length > 0) {
+      rich.push({ kind: "buttons", text: BUTTONS_BODY, buttons });
+    } else {
+      for (const text of entry) rich.push({ kind: "text", text });
+    }
+    return { messages, rich };
   }
 
   private async dispatch(session: Session, message: IncomingMessage): Promise<BotReply> {
@@ -218,9 +242,24 @@ export class BotEngine {
   }
 
   private async transition(session: Session, message: IncomingMessage, nextState: BotStateName, before: string[] = []): Promise<BotReply> {
+    // El menú principal salteado nunca se muestra: redirigir al inicio real.
+    if (nextState === BotState.MAIN_MENU && startState() !== BotState.MAIN_MENU) {
+      nextState = startState();
+    }
     session.state = nextState;
     const entry = await getHandler(nextState).enter({ session, message, services: this.deps.services });
-    return { messages: [...before, ...entry] };
+    const messages = [...before, ...entry];
+
+    // Si el destino es un menú con botones, armar la versión enriquecida
+    // (texto previo + mensaje con botones). El texto plano queda de respaldo.
+    const menu = MENU_OF_STATE[nextState];
+    const buttons = menu ? menuButtons(menu) : [];
+    if (buttons.length > 0) {
+      const rich: RichOutbound[] = before.map((text) => ({ kind: "text", text }));
+      rich.push({ kind: "buttons", text: BUTTONS_BODY, buttons });
+      return { messages, rich };
+    }
+    return { messages };
   }
 
   /**

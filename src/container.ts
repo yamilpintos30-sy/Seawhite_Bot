@@ -58,6 +58,7 @@ export function buildContainer(config: AppConfig = loadConfig()): Container {
     apiToken: config.CHATWOOT_API_TOKEN,
     accountId: config.CHATWOOT_ACCOUNT_ID,
     logger,
+    welcomeImagePath: config.WELCOME_IMAGE ? path.resolve(process.cwd(), config.WELCOME_IMAGE) : undefined,
   });
 
   return { config, logger, services, sessions, messageLog, engine, chatwoot, sealink, knowledge };

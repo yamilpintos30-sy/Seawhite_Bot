@@ -56,9 +56,28 @@ export interface IncomingMessage {
   conversationStatus?: string;
 }
 
+/** Botón interactivo de WhatsApp (máximo 3 por mensaje, títulos de hasta 20 caracteres). */
+export interface ButtonSpec {
+  title: string;
+  /** Valor que puede volver como respuesta al tocarlo (además del título). */
+  payload: string;
+}
+
+/**
+ * Mensaje "enriquecido" para canales que soportan imágenes y botones (WhatsApp
+ * vía Chatwoot). Si `rich` está presente, el canal lo usa; si no (o si el canal
+ * no soporta botones, como la CLI), se usan los `messages` de texto plano.
+ */
+export type RichOutbound =
+  | { kind: "text"; text: string }
+  | { kind: "image"; caption: string }
+  | { kind: "buttons"; text: string; buttons: ButtonSpec[] };
+
 /** Lo que el motor devuelve a la capa de canal (Chatwoot, CLI, tests). */
 export interface BotReply {
   messages: string[];
+  /** Versión enriquecida (foto de Enri, botones). Los `messages` quedan como respaldo. */
+  rich?: RichOutbound[];
   /** Si es true, la capa de canal debe pasar la conversación a una persona. */
   handoff?: boolean;
 }

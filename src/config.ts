@@ -17,6 +17,8 @@ const schema = z.object({
   // --- Identidad ---
   /** Nombre del asistente (aparece en el saludo y en la personalidad de la IA). */
   BOT_NAME: z.string().default("Enri"),
+  /** Imagen del saludo (avatar). Ruta relativa al proyecto; vacío o inexistente = saludo sólo texto. */
+  WELCOME_IMAGE: z.string().default("assets/enri-marinero.png"),
 
   // --- Servidor HTTP ---
   PORT: z.coerce.number().int().positive().default(3000),

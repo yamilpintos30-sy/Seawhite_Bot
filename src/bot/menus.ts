@@ -3,12 +3,14 @@
  * alcanza con completar `target` con un estado nuevo y registrar su handler en `handlers/index.ts`.
  */
 import { normalizeText } from "../utils/text.js";
-import { BotState, type BotStateName } from "./types.js";
+import { BotState, type BotStateName, type ButtonSpec } from "./types.js";
 
 export interface MenuOption {
   /** Tecla que se muestra: "A", "1", "0"... */
   key: string;
   label: string;
+  /** Título corto para el botón de WhatsApp (máx. 20 caracteres). Sin esto no se genera botón. */
+  buttonTitle?: string;
   /** Línea aclaratoria que se muestra debajo de la opción (qué hace y dónde). */
   hint?: string;
   /** Palabras alternativas que también seleccionan la opción (se comparan normalizadas). */
@@ -42,6 +44,7 @@ export const BALANZA_MENU: Menu = {
     {
       key: "1",
       label: "Carga de Documentación",
+      buttonTitle: "Cargar documentación",
       hint: "Dudas para cargar en la página web: qué poner en cada campo, formatos, rechazos",
       aliases: ["carga", "carga de documentacion", "documentacion", "cargar"],
       target: BotState.CARGA_DOC,
@@ -49,6 +52,7 @@ export const BALANZA_MENU: Menu = {
     {
       key: "2",
       label: "Documentación de Chofer",
+      buttonTitle: "Chofer por DNI",
       hint: "Consultá acá mismo los vencimientos de un chofer con su DNI",
       aliases: ["chofer", "choferes", "documentacion de chofer", "dni"],
       target: BotState.CHOFER_DNI,
@@ -56,6 +60,7 @@ export const BALANZA_MENU: Menu = {
     {
       key: "3",
       label: "Documentación de Camión o Acoplado",
+      buttonTitle: "Camión por patente",
       hint: "Consultá acá mismo los vencimientos de un vehículo con su patente",
       aliases: ["camion", "camiones", "acoplado", "acoplados", "patente", "dominio", "vehiculo"],
       target: BotState.CAMION_DOMINIO,
@@ -76,16 +81,29 @@ export function startState(): BotStateName {
   return disponibles.length === 1 ? disponibles[0]!.target! : BotState.MAIN_MENU;
 }
 
-/** Texto del menú listo para WhatsApp. */
+/** Opciones visibles: si el menú principal está salteado, "volver al principal" no tiene sentido. */
+function visibleOptions(menu: Menu): MenuOption[] {
+  return menu.options.filter((o) => !(o.target === BotState.MAIN_MENU && startState() !== BotState.MAIN_MENU));
+}
+
+/** Texto del menú listo para WhatsApp (respaldo cuando no hay botones). */
 export function renderMenu(menu: Menu): string {
   const lines = [menu.title, ""];
-  for (const opt of menu.options) {
+  for (const opt of visibleOptions(menu)) {
     const suffix = opt.target === null ? " _(próximamente)_" : "";
     lines.push(`*${opt.key})* ${opt.label}${suffix}`);
     if (opt.hint) lines.push(`   _${opt.hint}_`);
   }
   if (menu.footer) lines.push("", menu.footer);
   return lines.join("\n");
+}
+
+/** Botones interactivos del menú (WhatsApp admite hasta 3). */
+export function menuButtons(menu: Menu): ButtonSpec[] {
+  return visibleOptions(menu)
+    .filter((o) => o.target !== null && o.buttonTitle)
+    .slice(0, 3)
+    .map((o) => ({ title: o.buttonTitle!, payload: o.key }));
 }
 
 /** Busca la opción elegida por el usuario. Devuelve undefined si no coincide con nada. */
