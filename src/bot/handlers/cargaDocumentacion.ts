@@ -3,7 +3,7 @@
  * Preguntas libres respondidas con IA a partir de la base de conocimiento (`knowledge/`).
  */
 import { BotState, type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
-import { answerWithAi, MENU_HINT } from "./shared.js";
+import { answerWithAi } from "./shared.js";
 
 export const cargaDocumentacionHandler: StateHandler = {
   state: BotState.CARGA_DOC,
@@ -18,8 +18,6 @@ export const cargaDocumentacionHandler: StateHandler = {
         "• _¿Qué pongo en el campo DNI?_",
         "• _¿Puedo subir una foto en PNG?_",
         "• _Me rechazaron la ART, ¿qué reviso?_",
-        "",
-        MENU_HINT,
       ].join("\n"),
     ];
   },

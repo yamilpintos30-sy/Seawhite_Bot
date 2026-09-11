@@ -7,9 +7,6 @@ import { dailyLimits } from "../../utils/rateLimiter.js";
 import { toWhatsAppFormat } from "../../utils/text.js";
 import type { HandlerContext } from "../types.js";
 
-/** Cierre estándar de cada respuesta: corto e intuitivo. */
-export const MENU_HINT = "_Escribí *menu* para ver las opciones._";
-
 export const LIMITE_DIARIO_IA =
   "Llegamos al límite de consultas por hoy para este chat 😅. Mañana podemos seguir. Si tu consulta es urgente, comunicate directamente con SEA WHITE.";
 
@@ -67,8 +64,7 @@ export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Rec
     if (result.usage) {
       services.logger.info({ conversationId: session.conversationId, mode, usage: result.usage }, "Consulta respondida con IA");
     }
-    // Cada respuesta ofrece el camino de vuelta al menú (pedido del equipo).
-    return [...warnings, `${toWhatsAppFormat(result.text)}\n\n${MENU_HINT}`];
+    return [...warnings, toWhatsAppFormat(result.text)];
   } catch (err) {
     if (err instanceof AiUnavailableError) {
       services.logger.error({ err: err.message, conversationId: session.conversationId }, "IA no disponible");

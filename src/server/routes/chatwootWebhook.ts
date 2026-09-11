@@ -26,6 +26,11 @@ export interface WebhookDeps {
   logger: Logger;
 }
 
+/** Botones de pie de cada respuesta (estilo Banco Provincia): menú o cerrar. */
+const MENU_BUTTON = { title: "Menú 😊", payload: "menu" };
+const FINISH_BUTTON = { title: "Eso es todo, gracias", payload: "fin" };
+const FOOTER_BUTTONS = [MENU_BUTTON, FINISH_BUTTON];
+
 /** Evita procesar dos veces el mismo mensaje si Chatwoot reintenta el webhook. */
 class RecentIds {
   private readonly ids = new Set<string>();
@@ -57,7 +62,8 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
     askMs: Math.round(config.FOLLOWUP_ASK_MINUTES * 60_000),
     byeMs: Math.round(config.FOLLOWUP_BYE_MINUTES * 60_000),
     resetMs: Math.round(config.FOLLOWUP_RESET_MINUTES * 60_000),
-    sendText: (conversationId, text) => chatwoot.sendMessage(conversationId, text),
+    sendAsk: (conversationId, text) => chatwoot.sendButtons(conversationId, text, FOOTER_BUTTONS),
+    sendBye: (conversationId, text) => chatwoot.sendMessage(conversationId, text),
     resetConversation: async (conversationId) => {
       debouncer.clear(conversationId);
       await engine.reset(conversationId);
@@ -146,10 +152,27 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
         }
       }
     } else {
-      const parts = reply.messages.flatMap((m) => splitForWhatsApp(m));
-      await chatwoot.sendMessages(message.conversationId, parts);
+      // Cada respuesta cierra con los botones [ Menú 😊 ] [ Eso es todo, gracias ]
+      // (pedido del equipo, estilo Banco Provincia). El cuerpo de un mensaje con
+      // botones tiene tope (~1024): si el último tramo es muy largo, va plano.
+      // La despedida (reset) va sin botones: la conversación terminó.
+      const parts = reply.messages.flatMap((m) => splitForWhatsApp(m)).filter((p) => p.trim());
+      for (let i = 0; i < parts.length; i++) {
+        const isLast = i === parts.length - 1;
+        if (isLast && !reply.reset && parts[i]!.length <= 1000) {
+          await chatwoot.sendButtons(message.conversationId, parts[i]!, FOOTER_BUTTONS);
+        } else {
+          await chatwoot.sendMessage(message.conversationId, parts[i]!);
+        }
+      }
     }
     await maybeHandoff(reply, message.conversationId);
+    if (reply.reset) {
+      // Conversación cerrada: nada de seguimientos ni buffers pendientes.
+      followups.cancel(message.conversationId);
+      debouncer.clear(message.conversationId);
+      return;
+    }
     // Con la respuesta enviada, arranca la cadena de seguimientos por inactividad.
     if (!reply.handoff && (reply.messages.length > 0 || (reply.rich?.length ?? 0) > 0)) {
       followups.scheduleAfterReply(message.conversationId);

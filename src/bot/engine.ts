@@ -34,6 +34,7 @@ const HANDOFF_MESSAGE = "Perfecto, le paso tu consulta a una persona del equipo 
 const AUTOMATIC_ONLY_MESSAGE =
   "Por acá la atención es automática, pero te puedo resolver casi todo yo 🤖. Contame tu consulta sobre la documentación, o escribí *menu* para ver las opciones.";
 const GENERIC_ERROR = "Uy, tuve un problema para procesar tu mensaje. Probá de nuevo en un momento o escribí *menu* para volver al inicio.";
+const FAREWELL_MESSAGE = "¡Gracias por escribirme! 🙌 Cualquier consulta sobre documentación o vencimientos, acá estoy. ¡Que andes bien!";
 
 /** Comandos con los que el cliente despierta al bot mientras está derivado a una persona. */
 const REACTIVATION_TRIGGERS = ["/bot", "bot", "volver al bot", "reactivar bot", "activar bot"];
@@ -132,8 +133,14 @@ export class BotEngine {
       reply = { messages: [GENERIC_ERROR] };
     }
 
-    session.updatedAt = services.now().toISOString();
-    await this.safeSaveSession(session);
+    if (reply.reset) {
+      // Conversación cerrada por el usuario: se borra la sesión (el próximo
+      // mensaje arranca con el saludo desde cero).
+      await this.reset(message.conversationId).catch(() => undefined);
+    } else {
+      session.updatedAt = services.now().toISOString();
+      await this.safeSaveSession(session);
+    }
     await messageLog?.logOutgoing(message, reply.messages, session.state);
     return reply;
   }
@@ -212,6 +219,9 @@ export class BotEngine {
       }
       case "HELP":
         return { messages: [helpText(this.deps.services.config.HANDOFF_ENABLED)] };
+      case "FINISH":
+        // "Eso es todo, gracias": despedida y conversación cerrada (arranca de cero la próxima).
+        return { messages: [FAREWELL_MESSAGE], reset: true };
       case "HANDOFF": {
         const { config, now } = this.deps.services;
         if (!config.HANDOFF_ENABLED) {

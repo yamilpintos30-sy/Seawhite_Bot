@@ -85,7 +85,10 @@ describe("FollowupScheduler", () => {
       askMs: overrides.askMs ?? 40,
       byeMs: overrides.byeMs ?? 80,
       resetMs: overrides.resetMs ?? 120,
-      sendText: async (_c, text) => {
+      sendAsk: async (_c, text) => {
+        sent.push(text);
+      },
+      sendBye: async (_c, text) => {
         sent.push(text);
       },
       resetConversation: async (c) => {

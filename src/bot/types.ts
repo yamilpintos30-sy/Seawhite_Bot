@@ -80,6 +80,8 @@ export interface BotReply {
   rich?: RichOutbound[];
   /** Si es true, la capa de canal debe pasar la conversación a una persona. */
   handoff?: boolean;
+  /** Si es true, la conversación terminó (despedida): sin botones de pie ni seguimientos. */
+  reset?: boolean;
 }
 
 /** Servicios que reciben los handlers (inyectados para poder testear con dobles). */

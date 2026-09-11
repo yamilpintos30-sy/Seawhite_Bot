@@ -7,11 +7,13 @@
  */
 import { normalizeText } from "../utils/text.js";
 
-export type GlobalCommand = "MAIN_MENU" | "BACK" | "HANDOFF" | "HELP";
+export type GlobalCommand = "MAIN_MENU" | "BACK" | "HANDOFF" | "HELP" | "FINISH";
 
 const COMMANDS: Array<{ command: GlobalCommand; words: string[] }> = [
-  { command: "MAIN_MENU", words: ["menu", "menu principal", "inicio", "empezar", "reiniciar", "salir"] },
+  { command: "MAIN_MENU", words: ["menu", "menu principal", "inicio", "empezar", "reiniciar"] },
   { command: "BACK", words: ["volver", "atras", "volver atras", "anterior"] },
+  // Botón "Eso es todo, gracias" (y variantes): despedida + cierre de la conversación.
+  { command: "FINISH", words: ["fin", "eso es todo gracias", "eso es todo", "nada mas", "listo gracias", "no gracias", "salir", "chau", "gracias"] },
   {
     command: "HANDOFF",
     words: ["humano", "persona", "agente", "operador", "asesor", "hablar con alguien", "hablar con una persona", "quiero hablar con alguien"],

@@ -9,14 +9,17 @@
  */
 import type { Logger } from "../utils/logger.js";
 
-export const FOLLOWUP_ASK_TEXT = "¿Necesitás algo más? Escribí tu consulta o *menu* para ver las opciones 🙂";
+export const FOLLOWUP_ASK_TEXT = "¿Necesitás algo más? Escribí tu consulta o tocá el botón 🙂";
 export const FOLLOWUP_BYE_TEXT = "Espero haberte sido útil 🙌 Cualquier otra consulta, escribime cuando quieras. ¡Que andes bien!";
 
 export interface FollowupDeps {
   askMs: number;
   byeMs: number;
   resetMs: number;
-  sendText: (conversationId: string, text: string) => Promise<void>;
+  /** Envía el "¿necesitás algo más?" (el canal puede acompañarlo con el botón de menú). */
+  sendAsk: (conversationId: string, text: string) => Promise<void>;
+  /** Envía la despedida (texto plano). */
+  sendBye: (conversationId: string, text: string) => Promise<void>;
   resetConversation: (conversationId: string) => Promise<void>;
   logger: Logger;
 }
@@ -33,20 +36,20 @@ export class FollowupScheduler {
   /** Arranca (o reinicia) la cadena de seguimientos para una conversación. */
   scheduleAfterReply(conversationId: string): void {
     this.cancel(conversationId);
-    const { askMs, byeMs, resetMs, sendText, resetConversation, logger } = this.deps;
+    const { askMs, byeMs, resetMs, sendAsk, sendBye, resetConversation, logger } = this.deps;
     const timers: NodeJS.Timeout[] = [];
 
     if (askMs > 0) {
       timers.push(
         setTimeout(() => {
-          sendText(conversationId, FOLLOWUP_ASK_TEXT).catch((err) => logger.warn({ err, conversationId }, "No se pudo enviar el seguimiento"));
+          sendAsk(conversationId, FOLLOWUP_ASK_TEXT).catch((err) => logger.warn({ err, conversationId }, "No se pudo enviar el seguimiento"));
         }, askMs),
       );
     }
     if (byeMs > 0) {
       timers.push(
         setTimeout(() => {
-          sendText(conversationId, FOLLOWUP_BYE_TEXT).catch((err) => logger.warn({ err, conversationId }, "No se pudo enviar la despedida"));
+          sendBye(conversationId, FOLLOWUP_BYE_TEXT).catch((err) => logger.warn({ err, conversationId }, "No se pudo enviar la despedida"));
         }, byeMs),
       );
     }

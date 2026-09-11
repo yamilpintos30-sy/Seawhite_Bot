@@ -107,6 +107,19 @@ describe("BotEngine — menús", () => {
     expect(next.messages.join("\n")).toContain("¿Qué necesitás?");
   });
 
+  it("'eso es todo, gracias' despide y cierra: el próximo mensaje arranca de cero", async () => {
+    await t.send("hola");
+    await t.send("1");
+    const bye = await t.send("eso es todo, gracias");
+    expect(bye.reset).toBe(true);
+    expect(bye.messages[0]).toContain("Gracias por escribirme");
+    expect(await t.sessions.get("c1")).toBeNull(); // sesión borrada
+
+    const again = await t.send("hola");
+    expect(again.messages.join("
+")).toContain("Soy *Enri*"); // saluda de nuevo
+  });
+
   it("con HANDOFF_ENABLED=true, 'persona' deriva y silencia al bot", async () => {
     const configConHandoff = loadConfig({
       CHATWOOT_API_TOKEN: "t",

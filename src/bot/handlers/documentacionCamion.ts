@@ -8,7 +8,7 @@ import { clasificarVencimiento, lineaVencimiento, resumenGeneral, vencimientosPa
 import { looksLikePatente, normalizePatente } from "../../domain/validators.js";
 import { todayInTimeZone } from "../../utils/dates.js";
 import { BotState, type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
-import { answerWithAi, LIMITE_DIARIO_CONSULTAS, MENU_HINT, withinLookupLimit } from "./shared.js";
+import { answerWithAi, LIMITE_DIARIO_CONSULTAS, withinLookupLimit } from "./shared.js";
 
 const PEDIR_DOMINIO = "Escribí la *patente (dominio)* del camión o acoplado, toda junta, sin espacios ni guiones. Ejemplo: AA123BB";
 
@@ -18,7 +18,7 @@ export const camionDominioHandler: StateHandler = {
   enter(ctx: HandlerContext): string[] {
     ctx.session.history = [];
     ctx.session.context.camion = undefined;
-    return [`*Documentación de Camión o Acoplado* 🚛\n\n${PEDIR_DOMINIO}\n\n${MENU_HINT}`];
+    return [`*Documentación de Camión o Acoplado* 🚛\n\n${PEDIR_DOMINIO}`];
   },
 
   async handle(ctx: HandlerContext): Promise<HandlerResult> {
@@ -90,7 +90,7 @@ async function consultarCamion(ctx: HandlerContext): Promise<HandlerResult> {
   const detalle = [`Documentación del dominio *${lookup.dominio}*:`, "", ...vencimientos.map(lineaVencimiento), "", resumenGeneral(vencimientos)].join("\n");
 
   return {
-    messages: [detalle, "¿Querés preguntarme algo sobre esta documentación? También podés escribir otra patente.\n\n" + MENU_HINT],
+    messages: [detalle, "¿Querés preguntarme algo sobre esta documentación? También podés escribir otra patente."],
     nextState: BotState.CAMION_QA,
     skipEnter: true,
   };
