@@ -75,16 +75,7 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
     }
 
     if (parsed.kind === "agent_message") {
-      // Saliente que no es del agent bot: ¿eco de un envío nuestro o vendedor humano?
-      // El bot nunca manda media, así que un saliente con media es siempre humano.
-      if (!parsed.hasMedia && sentTracker.wasRecentlySent(parsed.conversationId, parsed.text)) {
-        logger.debug({ conversationId: parsed.conversationId }, "Eco del propio bot ignorado (anti-loop)");
-        return;
-      }
-      logger.info({ conversationId: parsed.conversationId }, "Vendedor humano respondió: el bot se silencia (handoff)");
-      engine
-        .markHandedOff(parsed.conversationId, parsed.accountId)
-        .catch((err) => logger.error({ err }, "Error marcando handoff por mensaje de agente"));
+      handleAgentMessage(parsed).catch((err) => logger.error({ err }, "Error procesando mensaje de agente"));
       return;
     }
 
@@ -164,6 +155,29 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
       logger.warn({ err, conversationId }, "La card experimental falló; se usa el formato split");
       return false;
     }
+  }
+
+  /**
+   * Saliente que no es del agent bot: ¿eco de un envío nuestro o vendedor humano?
+   * Señales de eco, en orden de confiabilidad:
+   *   1. El remitente es el usuario dueño del token (= el bot). Sobrevive reinicios.
+   *      OJO: los vendedores humanos deben usar SU PROPIO usuario de Chatwoot.
+   *   2. El texto coincide con algo que este proceso envió hace poco (sentTracker).
+   * El bot ahora también manda imágenes (el saludo), así que "tiene media" ya NO
+   * significa humano: eso silenciaba al bot con el eco de su propia foto.
+   */
+  async function handleAgentMessage(parsed: Extract<ReturnType<typeof parseChatwootWebhook>, { kind: "agent_message" }>): Promise<void> {
+    const botUserId = await chatwoot.getProfileId();
+    if (botUserId && parsed.senderId === botUserId) {
+      logger.debug({ conversationId: parsed.conversationId }, "Eco del propio bot ignorado (mismo usuario del token)");
+      return;
+    }
+    if (sentTracker.wasRecentlySent(parsed.conversationId, parsed.text)) {
+      logger.debug({ conversationId: parsed.conversationId }, "Eco del propio bot ignorado (texto reciente)");
+      return;
+    }
+    logger.info({ conversationId: parsed.conversationId, senderId: parsed.senderId }, "Vendedor humano respondió: el bot se silencia (handoff)");
+    await engine.markHandedOff(parsed.conversationId, parsed.accountId);
   }
 
   async function handleStatusChanged(conversationId: string, accountId: string, status: string, assigneeName?: string): Promise<void> {

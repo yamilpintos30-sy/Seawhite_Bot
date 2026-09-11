@@ -23,8 +23,30 @@ export interface ChatwootClientOptions {
 
 export class ChatwootClient {
   private welcomeImage: Buffer | null | undefined; // undefined = todavía no se intentó cargar
+  private profileId: string | null | undefined; // id del usuario dueño del token (= el bot)
 
   constructor(private readonly opts: ChatwootClientOptions) {}
+
+  /**
+   * Id del usuario de Chatwoot dueño del token (el "usuario bot"). Todo mensaje
+   * saliente de ese usuario es un eco de este bot, NUNCA un vendedor humano.
+   * Es la señal anti-eco infalible: sobrevive reinicios (el texto cacheado no).
+   */
+  async getProfileId(): Promise<string | null> {
+    if (this.profileId !== undefined) return this.profileId;
+    try {
+      const url = `${this.opts.baseUrl.replace(/\/$/, "")}/api/v1/profile`;
+      const res = await fetch(url, { headers: { api_access_token: this.opts.apiToken } });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = (await res.json()) as { id?: number };
+      this.profileId = data.id !== undefined ? String(data.id) : null;
+      this.opts.logger.info({ profileId: this.profileId }, "Usuario del bot en Chatwoot identificado (anti-eco)");
+    } catch (err) {
+      this.opts.logger.warn({ err }, "No se pudo obtener el perfil del bot en Chatwoot; anti-eco sólo por texto");
+      this.profileId = null;
+    }
+    return this.profileId;
+  }
 
   async sendMessage(conversationId: string, content: string): Promise<void> {
     // Anti-eco: registrar ANTES de enviar, así el webhook del eco (que puede
