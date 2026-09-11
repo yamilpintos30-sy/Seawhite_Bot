@@ -116,8 +116,7 @@ describe("BotEngine — menús", () => {
     expect(await t.sessions.get("c1")).toBeNull(); // sesión borrada
 
     const again = await t.send("hola");
-    expect(again.messages.join("
-")).toContain("Soy *Enri*"); // saluda de nuevo
+    expect(again.messages.join("\n")).toContain("Soy *Enri*"); // saluda de nuevo
   });
 
   it("con HANDOFF_ENABLED=true, 'persona' deriva y silencia al bot", async () => {
