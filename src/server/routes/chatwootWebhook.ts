@@ -113,9 +113,14 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
     const reply = await engine.handle(message);
     if (reply.rich && reply.rich.length > 0) {
       // Versión enriquecida: foto de Enri y/o botones interactivos.
-      for (const item of reply.rich) {
+      for (const [i, item] of reply.rich.entries()) {
         if (item.kind === "image") {
           await chatwoot.sendWelcomeImage(message.conversationId, item.caption);
+          // La imagen se procesa en el camino a WhatsApp; sin esta pausa el
+          // siguiente mensaje la pasa de largo y llega primero (desordenado).
+          if (i < reply.rich.length - 1 && config.WELCOME_IMAGE_DELAY_MS > 0) {
+            await new Promise((r) => setTimeout(r, config.WELCOME_IMAGE_DELAY_MS));
+          }
         } else if (item.kind === "buttons") {
           await chatwoot.sendButtons(message.conversationId, item.text, item.buttons);
         } else {

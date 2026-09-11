@@ -19,6 +19,12 @@ const schema = z.object({
   BOT_NAME: z.string().default("Enri"),
   /** Imagen del saludo (avatar). Ruta relativa al proyecto; vacío o inexistente = saludo sólo texto. */
   WELCOME_IMAGE: z.string().default("assets/enri-marinero.png"),
+  /**
+   * Pausa (ms) después de enviar la imagen y antes del siguiente mensaje.
+   * La imagen tarda en procesarse camino a WhatsApp; sin esta pausa, los
+   * botones la pasan de largo y llegan primero (visto en producción).
+   */
+  WELCOME_IMAGE_DELAY_MS: z.coerce.number().int().min(0).default(2500),
 
   // --- Servidor HTTP ---
   PORT: z.coerce.number().int().positive().default(3000),
