@@ -34,7 +34,7 @@ const HANDOFF_MESSAGE = "Perfecto, le paso tu consulta a una persona del equipo 
 const AUTOMATIC_ONLY_MESSAGE =
   "Por acá la atención es automática, pero te puedo resolver casi todo yo 🤖. Contame tu consulta sobre la documentación, o escribí *menu* para ver las opciones.";
 const GENERIC_ERROR = "Uy, tuve un problema para procesar tu mensaje. Probá de nuevo en un momento o escribí *menu* para volver al inicio.";
-const FAREWELL_MESSAGE = "¡Gracias por escribirme! 🙌 Cualquier consulta sobre documentación o vencimientos, acá estoy. ¡Que andes bien!";
+const FAREWELL_MESSAGE = "¡Gracias por escribirme! Cualquier consulta sobre documentación o vencimientos, acá estoy. Saludos.";
 
 /** Comandos con los que el cliente despierta al bot mientras está derivado a una persona. */
 const REACTIVATION_TRIGGERS = ["/bot", "bot", "volver al bot", "reactivar bot", "activar bot"];

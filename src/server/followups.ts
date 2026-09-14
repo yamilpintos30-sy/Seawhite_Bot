@@ -10,7 +10,7 @@
 import type { Logger } from "../utils/logger.js";
 
 export const FOLLOWUP_ASK_TEXT = "¿Necesitás algo más? Escribí tu consulta o tocá el botón 🙂";
-export const FOLLOWUP_BYE_TEXT = "Espero haberte sido útil 🙌 Cualquier otra consulta, escribime cuando quieras. ¡Que andes bien!";
+export const FOLLOWUP_BYE_TEXT = "Espero haberte sido útil. Cualquier otra consulta, escribime cuando quieras. Saludos.";
 
 export interface FollowupDeps {
   askMs: number;
