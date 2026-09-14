@@ -109,7 +109,7 @@ const schema = z.object({
    * en varios renglones). Botones, opciones de menú, comandos, DNI y patentes
    * responden al instante. 0 = sin buffer.
    */
-  DEBOUNCE_SECONDS: z.coerce.number().int().min(0).default(20),
+  DEBOUNCE_SECONDS: z.coerce.number().int().min(0).default(10),
   /** Minutos tras la última respuesta para preguntar "¿necesitás algo más?". 0 = off. */
   FOLLOWUP_ASK_MINUTES: z.coerce.number().min(0).default(3),
   /** Minutos para la despedida ("espero haberte sido útil..."). 0 = off. */
