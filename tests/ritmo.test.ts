@@ -99,15 +99,24 @@ describe("FollowupScheduler", () => {
     return { s, sent, resets };
   }
 
-  it("dispara en orden: ¿algo más? -> despedida -> reset", async () => {
+  it("dispara en orden: ¿algo más? -> despedida (que CIERRA la conversación al instante)", async () => {
     const { s, sent, resets } = setup();
     s.scheduleAfterReply("f1");
     await sleep(60);
     expect(sent).toEqual([FOLLOWUP_ASK_TEXT]);
-    await sleep(40);
-    expect(sent).toEqual([FOLLOWUP_ASK_TEXT, FOLLOWUP_BYE_TEXT]);
+    expect(resets).toEqual([]);
     await sleep(50);
-    expect(resets).toEqual(["f1"]);
+    expect(sent).toEqual([FOLLOWUP_ASK_TEXT, FOLLOWUP_BYE_TEXT]);
+    expect(resets).toEqual(["f1"]); // la despedida resetea YA, sin esperar al timer de reset
+    await sleep(60);
+    expect(resets).toEqual(["f1"]); // y el timer de reset quedó cancelado (no duplica)
+  });
+
+  it("sin despedida (byeMs=0), el reset de los 30 min sigue funcionando", async () => {
+    const { s, resets } = setup({ byeMs: 0, askMs: 0, resetMs: 50 });
+    s.scheduleAfterReply("f9");
+    await sleep(80);
+    expect(resets).toEqual(["f9"]);
   });
 
   it("un mensaje del usuario cancela toda la cadena", async () => {

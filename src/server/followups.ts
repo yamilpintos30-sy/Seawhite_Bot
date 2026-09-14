@@ -49,7 +49,17 @@ export class FollowupScheduler {
     if (byeMs > 0) {
       timers.push(
         setTimeout(() => {
-          sendBye(conversationId, FOLLOWUP_BYE_TEXT).catch((err) => logger.warn({ err, conversationId }, "No se pudo enviar la despedida"));
+          // La despedida CIERRA la conversación en el acto: si el bot dijo
+          // "espero haberte sido útil", el próximo mensaje arranca de cero.
+          // (Antes la sesión seguía viva hasta el reset y un "Hola" posterior
+          // caía en un estado viejo — visto en producción.)
+          this.cancel(conversationId);
+          sendBye(conversationId, FOLLOWUP_BYE_TEXT)
+            .catch((err) => logger.warn({ err, conversationId }, "No se pudo enviar la despedida"))
+            .finally(() => {
+              logger.info({ conversationId }, "Conversación cerrada tras la despedida");
+              resetConversation(conversationId).catch((err) => logger.warn({ err, conversationId }, "No se pudo resetear la conversación"));
+            });
         }, byeMs),
       );
     }
