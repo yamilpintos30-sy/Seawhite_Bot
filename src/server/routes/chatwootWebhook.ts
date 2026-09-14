@@ -52,10 +52,35 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
   const recent = new RecentIds();
   const statuses = activeStatuses(config);
 
+  // Envíos en ORDEN por conversación: la respuesta a un mensaje no puede
+  // adelantarse a la del anterior. Sin esto, la subida (lenta) de la imagen
+  // del saludo era superada por el texto de una respuesta posterior y el
+  // chat llegaba desordenado (visto en producción con 3 "holas" seguidos).
+  const sendQueues = new Map<string, Promise<void>>();
+  function enqueueHandle(message: Parameters<BotEngine["handle"]>[0]): Promise<void> {
+    const previous = sendQueues.get(message.conversationId) ?? Promise.resolve();
+    const run = previous
+      .catch(() => undefined)
+      .then(() => handleMessage(message))
+      .catch((err) => logger.error({ err, conversationId: message.conversationId }, "Error procesando mensaje"));
+    sendQueues.set(message.conversationId, run);
+    run
+      .finally(() => {
+        if (sendQueues.get(message.conversationId) === run) sendQueues.delete(message.conversationId);
+      })
+      .catch(() => undefined);
+    return run;
+  }
+
   // Buffer: juntar los mensajes del usuario y responder una sola vez.
   const debouncer = new MessageDebouncer(config.DEBOUNCE_SECONDS * 1000, (merged) => {
-    handleMessage(merged).catch((err) => logger.error({ err, conversationId: merged.conversationId }, "Error procesando mensaje"));
+    void enqueueHandle(merged);
   });
+
+  // Conversaciones cuyo SALUDO está en curso: los mensajes que lleguen en el
+  // medio van al buffer (se juntan y se responden una sola vez), en vez de
+  // tratarse cada uno como "primer mensaje" y disparar llamadas a la IA sueltas.
+  const greetingInFlight = new Set<string>();
 
   // En un apagado (deploy), los mensajes que estaban juntándose se procesan YA:
   // sin esto, una consulta a mitad del buffer quedaba sin responder para siempre.
@@ -134,10 +159,13 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
     // El usuario escribió: se cancelan los seguimientos pendientes y el mensaje
     // entra al buffer (o se procesa al instante si es botón/comando/DNI/patente).
     // El PRIMER mensaje de una conversación nunca espera: el saludo sale ya.
+    // Los mensajes que lleguen MIENTRAS el saludo está en curso van al buffer.
     followups.cancel(message.conversationId);
     void (async () => {
-      if (!(await engine.isKnownConversation(message.conversationId))) {
-        await handleMessage(message);
+      const conversationId = message.conversationId;
+      if (!greetingInFlight.has(conversationId) && !(await engine.isKnownConversation(conversationId))) {
+        greetingInFlight.add(conversationId);
+        await enqueueHandle(message).finally(() => greetingInFlight.delete(conversationId));
         return;
       }
       debouncer.push(message);
