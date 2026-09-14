@@ -113,9 +113,9 @@ const schema = z.object({
   /** Minutos tras la última respuesta para preguntar "¿necesitás algo más?". 0 = off. */
   FOLLOWUP_ASK_MINUTES: z.coerce.number().min(0).default(3),
   /** Minutos para la despedida ("espero haberte sido útil..."). 0 = off. */
-  FOLLOWUP_BYE_MINUTES: z.coerce.number().min(0).default(10),
+  FOLLOWUP_BYE_MINUTES: z.coerce.number().min(0).default(6),
   /** Minutos para resetear la conversación (el próximo mensaje arranca de cero). 0 = off. */
-  FOLLOWUP_RESET_MINUTES: z.coerce.number().min(0).default(30),
+  FOLLOWUP_RESET_MINUTES: z.coerce.number().min(0).default(9),
 
   // --- Sesiones ---
   /** Minutos de inactividad tras los cuales la conversación vuelve al menú principal. */

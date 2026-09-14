@@ -136,6 +136,9 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
   });
 
   async function handleMessage(message: Parameters<BotEngine["handle"]>[0]): Promise<void> {
+    // Los plazos de seguimiento se cuentan desde el mensaje del cliente, no
+    // desde que el bot terminó de responder.
+    const clientMessageAt = Date.now();
     logger.info({ conversationId: message.conversationId, text: message.text.slice(0, 80), attachments: message.attachments.length }, "Mensaje entrante");
     const reply = await engine.handle(message);
     if (reply.rich && reply.rich.length > 0) {
@@ -184,9 +187,10 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
       debouncer.clear(message.conversationId);
       return;
     }
-    // Con la respuesta enviada, arranca la cadena de seguimientos por inactividad.
+    // Con la respuesta enviada, arranca la cadena de seguimientos por inactividad
+    // (los plazos descuentan lo que tardó la respuesta).
     if (!reply.handoff && (reply.messages.length > 0 || (reply.rich?.length ?? 0) > 0)) {
-      followups.scheduleAfterReply(message.conversationId);
+      followups.scheduleAfterReply(message.conversationId, clientMessageAt);
     }
   }
 

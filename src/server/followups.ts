@@ -33,17 +33,24 @@ export class FollowupScheduler {
 
   constructor(private readonly deps: FollowupDeps) {}
 
-  /** Arranca (o reinicia) la cadena de seguimientos para una conversación. */
-  scheduleAfterReply(conversationId: string): void {
+  /**
+   * Arranca (o reinicia) la cadena de seguimientos para una conversación.
+   * `baseTimeMs` es el momento del ÚLTIMO MENSAJE DEL CLIENTE: los plazos se
+   * cuentan desde ahí, no desde que el bot terminó de responder (se descuenta
+   * lo que tardó la respuesta).
+   */
+  scheduleAfterReply(conversationId: string, baseTimeMs: number = Date.now()): void {
     this.cancel(conversationId);
     const { askMs, byeMs, resetMs, sendAsk, sendBye, resetConversation, logger } = this.deps;
+    const elapsed = Math.max(0, Date.now() - baseTimeMs);
+    const delay = (ms: number) => Math.max(0, ms - elapsed);
     const timers: NodeJS.Timeout[] = [];
 
     if (askMs > 0) {
       timers.push(
         setTimeout(() => {
           sendAsk(conversationId, FOLLOWUP_ASK_TEXT).catch((err) => logger.warn({ err, conversationId }, "No se pudo enviar el seguimiento"));
-        }, askMs),
+        }, delay(askMs)),
       );
     }
     if (byeMs > 0) {
@@ -60,7 +67,7 @@ export class FollowupScheduler {
               logger.info({ conversationId }, "Conversación cerrada tras la despedida");
               resetConversation(conversationId).catch((err) => logger.warn({ err, conversationId }, "No se pudo resetear la conversación"));
             });
-        }, byeMs),
+        }, delay(byeMs)),
       );
     }
     if (resetMs > 0) {
@@ -69,7 +76,7 @@ export class FollowupScheduler {
           this.chains.delete(conversationId);
           logger.info({ conversationId }, "Conversación reseteada por inactividad");
           resetConversation(conversationId).catch((err) => logger.warn({ err, conversationId }, "No se pudo resetear la conversación"));
-        }, resetMs),
+        }, delay(resetMs)),
       );
     }
 
