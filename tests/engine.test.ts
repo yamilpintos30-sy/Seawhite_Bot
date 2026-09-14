@@ -87,6 +87,21 @@ describe("BotEngine — menús", () => {
     expect(reply.messages.join("\n")).not.toContain("No entendí");
   });
 
+  it("una foto sola se ignora por completo: aviso fijo + menú real (sin IA)", async () => {
+    await t.send("hola");
+    const reply = await t.engine.handle({
+      id: "img1",
+      conversationId: "c1",
+      accountId: "1",
+      text: "",
+      attachments: [{ url: "https://x/foto.jpg", fileType: "image" }],
+    });
+    expect(reply.messages[0]).toContain("no proceso fotos");
+    expect(reply.messages.join(" ")).toContain("Carga de Documentación");
+    expect(reply.rich?.some((r) => r.kind === "buttons")).toBe(true);
+    expect(t.ai.calls).toHaveLength(0); // la IA jamas ve la imagen
+  });
+
   it("volver y menu llevan al menú BALANZA (no al principal salteado)", async () => {
     await t.send("hola");
     await t.send("1");

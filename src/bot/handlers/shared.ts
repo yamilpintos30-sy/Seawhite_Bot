@@ -1,5 +1,4 @@
 /** Helpers compartidos por los handlers que usan IA. */
-import { downloadAttachments } from "../../ai/attachments.js";
 import { AiUnavailableError } from "../../ai/claudeService.js";
 import type { AiMode } from "../../ai/types.js";
 import { formatIso, todayInTimeZone } from "../../utils/dates.js";
@@ -38,10 +37,11 @@ export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Rec
     return [LIMITE_DIARIO_IA];
   }
 
-  const { attachments, warnings } = await downloadAttachments(message.attachments, services.logger);
-
-  if (!message.text.trim() && attachments.length === 0) {
-    return warnings.length ? warnings : ["No recibí texto en tu mensaje. Contame tu consulta y te ayudo."];
+  // Las fotos y archivos se IGNORAN por completo (decisión del equipo): la IA
+  // nunca los recibe. Un mensaje sin texto no tiene nada que responder acá
+  // (el motor intercepta antes los mensajes de adjunto solo).
+  if (!message.text.trim()) {
+    return ["Contame por escrito tu consulta y te ayudo."];
   }
 
   // Recorte defensivo de mensajes larguísimos (pegadas de texto, spam).
@@ -52,23 +52,20 @@ export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Rec
       mode,
       history: session.history,
       userText,
-      attachments,
       data,
     });
 
-    const userTurn = message.text.trim() || "(envió un archivo)";
-    const attachmentNote = attachments.length ? ` [adjuntó ${attachments.length} archivo(s)]` : "";
-    pushHistory(ctx, "user", userTurn + attachmentNote);
+    pushHistory(ctx, "user", message.text.trim());
     pushHistory(ctx, "assistant", result.text);
 
     if (result.usage) {
       services.logger.info({ conversationId: session.conversationId, mode, usage: result.usage }, "Consulta respondida con IA");
     }
-    return [...warnings, toWhatsAppFormat(result.text)];
+    return [toWhatsAppFormat(result.text)];
   } catch (err) {
     if (err instanceof AiUnavailableError) {
       services.logger.error({ err: err.message, conversationId: session.conversationId }, "IA no disponible");
-      return [...warnings, err.userMessage];
+      return [err.userMessage];
     }
     throw err;
   }
