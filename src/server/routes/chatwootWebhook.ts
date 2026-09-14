@@ -15,7 +15,7 @@ import { sentTracker } from "../../channels/chatwoot/sentTracker.js";
 import type { ChatwootWebhookPayload } from "../../channels/chatwoot/types.js";
 import { activeStatuses, type AppConfig } from "../../config.js";
 import type { Logger } from "../../utils/logger.js";
-import { splitForWhatsApp } from "../../utils/text.js";
+import { splitForButtons, splitForWhatsApp } from "../../utils/text.js";
 import { MessageDebouncer } from "../debounce.js";
 import { FollowupScheduler } from "../followups.js";
 
@@ -201,13 +201,14 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
       }
     } else {
       // Cada respuesta cierra con los botones [ Menú 😊 ] [ Eso es todo, gracias ]
-      // (pedido del equipo, estilo Banco Provincia). El cuerpo de un mensaje con
-      // botones tiene tope (~1024): si el último tramo es muy largo, va plano.
-      // La despedida (reset) va sin botones: la conversación terminó.
+      // (pedido del equipo, estilo Banco Provincia). El texto de un mensaje con
+      // botones tiene tope (1024): si el último tramo es más largo, se parte y
+      // los botones van con la parte final. La despedida (reset) va sin botones.
       const parts = reply.messages.flatMap((m) => splitForWhatsApp(m)).filter((p) => p.trim());
+      if (!reply.reset && parts.length > 0) parts.push(...splitForButtons(parts.pop()!));
       for (let i = 0; i < parts.length; i++) {
         const isLast = i === parts.length - 1;
-        if (isLast && !reply.reset && parts[i]!.length <= 1000) {
+        if (isLast && !reply.reset) {
           await chatwoot.sendButtons(message.conversationId, parts[i]!, FOOTER_BUTTONS);
         } else {
           await chatwoot.sendMessage(message.conversationId, parts[i]!);

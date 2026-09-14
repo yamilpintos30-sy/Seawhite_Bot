@@ -49,3 +49,24 @@ export function splitForWhatsApp(text: string, maxLength = 4000): string[] {
   if (current) chunks.push(current);
   return chunks.flatMap((c) => (c.length > maxLength ? c.match(new RegExp(`[\\s\\S]{1,${maxLength}}`, "g")) ?? [c] : [c]));
 }
+
+/**
+ * WhatsApp rechaza botones si el texto que los acompaña supera 1024 caracteres.
+ * Parte un texto largo en [cabeza, cola] donde la cola entra con los botones.
+ * Corta preferentemente entre párrafos, después entre líneas y por último entre
+ * palabras, dejando en la cola la mayor parte posible del final.
+ */
+export function splitForButtons(text: string, maxLength = 1000): string[] {
+  if (text.length <= maxLength) return [text];
+  const minTailStart = text.length - maxLength;
+  for (const sep of ["\n\n", "\n", " "]) {
+    let idx = text.indexOf(sep, Math.max(1, minTailStart - sep.length));
+    while (idx !== -1) {
+      const head = text.slice(0, idx).trimEnd();
+      const tail = text.slice(idx + sep.length).trimStart();
+      if (head && tail && tail.length <= maxLength) return [head, tail];
+      idx = text.indexOf(sep, idx + 1);
+    }
+  }
+  return [text.slice(0, minTailStart), text.slice(minTailStart)];
+}

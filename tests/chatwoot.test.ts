@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseChatwootWebhook } from "../src/channels/chatwoot/parseWebhook.js";
 import { matchOption, MAIN_MENU, BALANZA_MENU } from "../src/bot/menus.js";
 import { detectGlobalCommand } from "../src/bot/commands.js";
-import { splitForWhatsApp, toWhatsAppFormat } from "../src/utils/text.js";
+import { splitForButtons, splitForWhatsApp, toWhatsAppFormat } from "../src/utils/text.js";
 
 describe("parseChatwootWebhook", () => {
   const base = {
@@ -138,5 +138,28 @@ describe("formato WhatsApp", () => {
     expect(parts.length).toBeGreaterThan(1);
     expect(parts.every((p) => p.length <= 1000)).toBe(true);
     expect(parts.join("\n\n")).toBe(long);
+  });
+
+  it("un texto corto va entero con los botones", () => {
+    expect(splitForButtons("Hola", 1000)).toEqual(["Hola"]);
+  });
+
+  it("un texto largo se parte y la cola entra con los botones", () => {
+    const lista = Array.from({ length: 20 }, (_, i) => `* Requisito ${i}: ${"detalle ".repeat(8)}`).join("\n");
+    const long = `Para dar de alta a un chofer se necesita:\n\n${lista}\n\nTodo esto se carga en la web.\n\nSaludos.`;
+    expect(long.length).toBeGreaterThan(1000);
+    const parts = splitForButtons(long, 1000);
+    expect(parts).toHaveLength(2);
+    expect(parts[1]!.length).toBeLessThanOrEqual(1000);
+    expect(parts[1]).toContain("Saludos.");
+    expect(parts[0]).toContain("Para dar de alta");
+    expect(parts.join("").replace(/\s/g, "")).toBe(long.replace(/\s/g, ""));
+  });
+
+  it("sin saltos de línea corta entre palabras", () => {
+    const long = "palabra ".repeat(200).trim();
+    const parts = splitForButtons(long, 1000);
+    expect(parts[1]!.length).toBeLessThanOrEqual(1000);
+    expect(parts.every((p) => !p.startsWith(" ") && !p.endsWith(" "))).toBe(true);
   });
 });
