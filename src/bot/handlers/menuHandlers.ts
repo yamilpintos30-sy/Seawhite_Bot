@@ -4,6 +4,7 @@
  */
 import { matchOption, renderMenu, BALANZA_MENU, MAIN_MENU, type Menu } from "../menus.js";
 import type { HandlerContext, HandlerResult, StateHandler } from "../types.js";
+import { answerWithAi } from "./shared.js";
 
 /** Saludo inicial (lo antepone el motor al primer menú): por el nombre si SeaLink identificó el teléfono. */
 export function welcomeLine(botName: string, displayName?: string): string {
@@ -24,9 +25,11 @@ export function createMenuHandler(menu: Menu): StateHandler {
       const option = matchOption(menu, ctx.message.text);
 
       if (!option) {
-        return {
-          messages: [`No entendí la opción. ${menu.footer ?? ""}`.trim(), renderMenu(menu)],
-        };
+        // No es una opción del menú: lo atiende la IA igual que en Carga de
+        // Documentación (nada de "No entendí" + menú en texto plano). Los
+        // botones de pie vuelven a aparecer solos con la respuesta.
+        const messages = await answerWithAi(ctx, "carga");
+        return { messages };
       }
       if (option.target === null) {
         return {

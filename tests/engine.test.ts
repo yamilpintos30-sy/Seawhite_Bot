@@ -80,11 +80,11 @@ describe("BotEngine — menús", () => {
     expect(text).toContain("con su patente");
   });
 
-  it("opción inválida repite el menú", async () => {
+  it("en el menú, lo que no es una opción lo responde la IA (nada de 'No entendí')", async () => {
     await t.send("hola");
-    const reply = await t.send("xyz");
-    expect(reply.messages[0]).toContain("No entendí");
-    expect(reply.messages[1]).toContain("*1)* Carga de Documentación");
+    const reply = await t.send("12345");
+    expect(reply.messages[0]).toContain("IA(carga): 12345");
+    expect(reply.messages.join("\n")).not.toContain("No entendí");
   });
 
   it("volver y menu llevan al menú BALANZA (no al principal salteado)", async () => {
@@ -243,7 +243,7 @@ describe("BotEngine — sesiones", () => {
     const t = setup();
     const [a, b, c] = await Promise.all([t.send("hola"), t.send("A"), t.send("2")]);
     expect(a.messages.join("\n")).toContain("¿Qué necesitás?");
-    expect(b.messages.join("\n")).toContain("Carga de Documentación");
+    expect(b.messages[0]).toContain("IA(carga): A");
     expect(c.messages[0]).toContain("DNI del chofer");
   });
 });

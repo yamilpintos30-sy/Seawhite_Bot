@@ -18,7 +18,7 @@ import { nombreCompleto } from "../utils/names.js";
 import { detectGlobalCommand, helpText } from "./commands.js";
 import { getHandler, PARENT_STATE } from "./handlers/index.js";
 import { welcomeLine } from "./handlers/menuHandlers.js";
-import { BALANZA_MENU, MAIN_MENU, menuButtons, startState, type Menu } from "./menus.js";
+import { BALANZA_MENU, MAIN_MENU, matchOption, menuButtons, startState, type Menu } from "./menus.js";
 import { BotState, type BotReply, type BotServices, type BotStateName, type IncomingMessage, type RichOutbound, type Session } from "./types.js";
 
 /** Menú correspondiente a un estado, si el estado es un menú. */
@@ -186,10 +186,14 @@ export class BotEngine {
     const ctx = { session, message, services: this.deps.services };
     const greeting = welcomeLine(this.deps.services.config.BOT_NAME, session.contact?.displayName);
 
-    // Si el primer mensaje ya es una opción válida del menú inicial ("2", "chofer"), la respetamos.
-    const result = await getHandler(start).handle(ctx);
-    if (result.nextState && result.nextState !== start) {
-      const reply = await this.transition(session, message, result.nextState);
+    // Si el primer mensaje ya es una opción válida del menú inicial ("2", "chofer"),
+    // la respetamos. Se chequea con matchOption directamente (NO con handler.handle:
+    // desde que el menú responde con IA lo que no es opción, eso dispararía una
+    // llamada a Claude al pedo en cada saludo).
+    const startMenu = MENU_OF_STATE[start];
+    const chosen = startMenu ? matchOption(startMenu, message.text) : undefined;
+    if (chosen?.target && chosen.target !== start) {
+      const reply = await this.transition(session, message, chosen.target);
       return {
         messages: [greeting, ...reply.messages],
         rich: [{ kind: "image", caption: greeting }, ...(reply.rich ?? reply.messages.map((text) => ({ kind: "text" as const, text })))],
