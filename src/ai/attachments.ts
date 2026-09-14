@@ -42,7 +42,7 @@ export async function downloadAttachments(
       const contentType = (res.headers.get("content-type") ?? item.contentType ?? "").split(";")[0]!.trim().toLowerCase();
       const buffer = Buffer.from(await res.arrayBuffer());
       if (buffer.byteLength > MAX_BYTES) {
-        result.warnings.push("El archivo que mandaste es muy pesado para analizarlo por acá. Probá con una foto más liviana o una captura.");
+        result.warnings.push("El archivo que mandaste es muy pesado para analizarlo por acá. Mejor contame por escrito qué dice (por ejemplo, copiá el texto del rechazo) y te ayudo.");
         continue;
       }
 
@@ -54,12 +54,12 @@ export async function downloadAttachments(
         result.warnings.push("Por ahora no puedo escuchar audios. ¿Me lo escribís en un mensaje de texto?");
       } else {
         result.warnings.push(
-          "No pude abrir ese archivo. Recordá que la plataforma admite únicamente JPG o PDF; si es una foto del celular en otro formato (por ejemplo HEIC), convertila a JPG y mandámela de nuevo.",
+          "No pude abrir ese archivo por acá. Mejor contame por escrito lo que necesitás (por ejemplo, copiá el texto del motivo de rechazo) y te ayudo. Recordá que la página de SEA WHITE admite únicamente JPG o PDF.",
         );
       }
     } catch (err) {
       logger.warn({ err, url: item.url }, "No se pudo descargar un adjunto");
-      result.warnings.push("No pude descargar el archivo que mandaste. ¿Podés reenviarlo?");
+      result.warnings.push("No pude abrir el archivo que mandaste. Contame por escrito qué dice y te ayudo igual.");
     }
   }
 
