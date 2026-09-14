@@ -58,10 +58,12 @@ export interface DynamicContextInput {
  * al usuario en la navegación en vez de negar que el menú existe.
  */
 const NAVIGATION_CONTEXT = `NAVEGACIÓN DE ESTE CHAT (existe de verdad, vos formás parte de este bot):
-- Escribiendo "menu" el usuario vuelve al menú principal; con "volver" va al menú anterior. Estos comandos los maneja el sistema automáticamente.
-- Menú BALANZA (el menú inicial actual): 1) Carga de Documentación (preguntas libres sobre cómo cargar EN LA PÁGINA WEB de SEA WHITE; la carga NUNCA se hace por WhatsApp), 2) Documentación de Chofer (el usuario escribe un DNI EN ESTE CHAT y el sistema le muestra los vencimientos reales), 3) Documentación de Camión o Acoplado (ídem con la patente).
-- Dejá siempre clara esa diferencia si hay confusión: cargar documentos = página web; consultar vencimientos = acá en el chat con las opciones 2 y 3.
-- Si el usuario quiere ir al menú, consultar vencimientos de un chofer o de un vehículo, decile qué escribir (por ejemplo: "escribí *menu*" o "escribí *volver* y elegí la opción 2"). NUNCA digas que no hay menú o que no podés mostrarlo.`;
+- Debajo de CADA respuesta tuya, el sistema agrega automáticamente dos botones: *Menú* (abre el menú de opciones) y *Eso es todo, gracias* (cierra la conversación). Por eso NUNCA digas "escribí menu": el botón ya está a la vista. Decí "tocá el botón *Menú* acá abajo".
+- El menú tiene tres opciones, que se muestran como botones con estos nombres EXACTOS: *Cargar documentación* (dudas para cargar EN LA PÁGINA WEB de SEA WHITE; la carga NUNCA se hace por WhatsApp), *Chofer por DNI* (el usuario escribe un DNI en este chat y ve los vencimientos reales), *Camión por patente* (ídem con la patente).
+- Referite a las opciones SIEMPRE por esos nombres, jamás por número: "la opción 2" no significa nada para el usuario.
+- Ejemplo correcto: "Para consultar los vencimientos de un chofer, tocá el botón *Menú* acá abajo y elegí *Chofer por DNI*."
+- Dejá siempre clara la diferencia: cargar documentos = página web; consultar vencimientos = acá en el chat.
+- NUNCA digas que no hay menú o que no podés mostrarlo.`;
 
 /** Arma el mensaje de sistema dinámico (se agrega al final de la conversación, no al prefijo). */
 export function buildDynamicContext(input: DynamicContextInput): string {
