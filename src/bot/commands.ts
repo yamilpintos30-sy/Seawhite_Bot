@@ -10,7 +10,12 @@ import { normalizeText } from "../utils/text.js";
 export type GlobalCommand = "MAIN_MENU" | "BACK" | "HANDOFF" | "HELP" | "FINISH";
 
 const COMMANDS: Array<{ command: GlobalCommand; words: string[] }> = [
-  { command: "MAIN_MENU", words: ["menu", "menu principal", "inicio", "empezar", "reiniciar"] },
+  // Un saludo en una conversación ya abierta lleva al menú real (con botones);
+  // sin esto caía en la IA, que improvisaba un menú escrito (visto en producción).
+  {
+    command: "MAIN_MENU",
+    words: ["menu", "menu principal", "inicio", "empezar", "reiniciar", "hola", "holaa", "buenas", "buen dia", "buenos dias", "buenas tardes", "buenas noches", "hey"],
+  },
   { command: "BACK", words: ["volver", "atras", "volver atras", "anterior"] },
   // Botón "Eso es todo, gracias" (y variantes): despedida + cierre de la conversación.
   { command: "FINISH", words: ["fin", "eso es todo gracias", "eso es todo", "nada mas", "listo gracias", "no gracias", "salir", "chau", "gracias"] },

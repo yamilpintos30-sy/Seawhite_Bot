@@ -102,6 +102,15 @@ describe("BotEngine — menús", () => {
     expect(t.ai.calls).toHaveLength(0); // la IA jamas ve la imagen
   });
 
+  it("'hola' con la conversación ya abierta muestra el menú real, sin pasar por la IA", async () => {
+    await t.send("hola"); // saludo inicial (nueva)
+    await t.send("1"); // entra a Carga de Documentación
+    const reply = await t.send("hola"); // saluda de nuevo, mitad de conversación
+    expect(reply.messages.join(" ")).toContain("¿Qué necesitás?");
+    expect(reply.rich?.some((r) => r.kind === "buttons")).toBe(true);
+    expect(t.ai.calls).toHaveLength(0); // nunca fue a la IA
+  });
+
   it("volver y menu llevan al menú BALANZA (no al principal salteado)", async () => {
     await t.send("hola");
     await t.send("1");
