@@ -15,7 +15,7 @@ import { formatIso, formatLong, todayInTimeZone } from "../utils/dates.js";
 import type { Logger } from "../utils/logger.js";
 import type { KnowledgeStore } from "./knowledge.js";
 import { buildBaseSystem, buildDynamicContext } from "./prompts.js";
-import type { AiAnswerInput, AiAnswerResult, AiAttachment, AiService } from "./types.js";
+import type { AiAnswerInput, AiAnswerResult, AiService } from "./types.js";
 
 export class AiUnavailableError extends Error {
   constructor(
@@ -28,7 +28,6 @@ export class AiUnavailableError extends Error {
 }
 
 type BetaParams = Anthropic.Beta.Messages.MessageCreateParamsNonStreaming;
-type BetaContent = Anthropic.Beta.Messages.BetaContentBlockParam;
 
 export class ClaudeService implements AiService {
   private readonly client: Anthropic;
@@ -140,18 +139,13 @@ export class ClaudeService implements AiService {
 
   private buildMessages(input: AiAnswerInput, dynamicContext: string, useSystemRole: boolean): Anthropic.Beta.Messages.BetaMessageParam[] {
     const history: Anthropic.Beta.Messages.BetaMessageParam[] = input.history.map((t) => ({ role: t.role, content: t.content }));
+    const userText = input.userText.trim();
 
-    const userContent: BetaContent[] = [];
-    for (const att of input.attachments ?? []) userContent.push(toContentBlock(att));
-
-    const userText = input.userText.trim() || (input.attachments?.length ? "(el usuario envió un archivo sin texto)" : "");
     if (useSystemRole) {
-      userContent.push({ type: "text", text: userText });
-      history.push({ role: "user", content: userContent });
+      history.push({ role: "user", content: userText });
       history.push({ role: "system", content: dynamicContext });
     } else {
-      userContent.push({ type: "text", text: `<contexto_operador>\n${dynamicContext}\n</contexto_operador>\n\n${userText}` });
-      history.push({ role: "user", content: userContent });
+      history.push({ role: "user", content: `<contexto_operador>\n${dynamicContext}\n</contexto_operador>\n\n${userText}` });
     }
     return history;
   }
@@ -169,11 +163,4 @@ export class ClaudeService implements AiService {
     }
     return new AiUnavailableError(`Error inesperado: ${(err as Error)?.message}`, "Tuve un problema para procesar tu consulta. ¿Podés intentar de nuevo en un momento?");
   }
-}
-
-function toContentBlock(att: AiAttachment): BetaContent {
-  if (att.kind === "image") {
-    return { type: "image", source: { type: "base64", media_type: att.mediaType, data: att.base64 } };
-  }
-  return { type: "document", source: { type: "base64", media_type: "application/pdf", data: att.base64 } };
 }

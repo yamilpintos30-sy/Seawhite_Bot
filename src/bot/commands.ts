@@ -1,9 +1,10 @@
 /**
- * Comandos globales: funcionan en cualquier estado.
- *   - "menu" / "inicio"        -> vuelve al menú principal
- *   - "volver" / "atrás"       -> vuelve al menú anterior
- *   - "humano" / "persona"...  -> deriva la conversación a un agente
- *   - "ayuda"                  -> explica cómo usar el bot
+ * Comandos globales: funcionan en cualquier estado, antes que el handler.
+ *   - "menu" / "hola" / saludos       -> muestra el menú inicial (con botones)
+ *   - "volver" / "atrás"              -> vuelve al menú anterior
+ *   - "eso es todo" / botón de cierre -> despedida + cierre de la conversación
+ *   - "persona" / "humano"...         -> deriva a un agente (sólo si HANDOFF_ENABLED)
+ *   - "ayuda"                         -> explica cómo usar el bot
  */
 import { normalizeText } from "../utils/text.js";
 

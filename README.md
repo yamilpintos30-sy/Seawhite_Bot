@@ -16,20 +16,27 @@ WhatsApp ──▶ Meta Business ──▶ Chatwoot ──(webhook)──▶ est
 
 ## Qué hace
 
-Implementa el flujo definido en `Esquema_Bot_IA.pdf`:
+Implementa el flujo de `Esquema_Bot_IA.pdf`, afinado con las pruebas reales de producción:
 
-| Menú | Opción | Comportamiento |
-|---|---|---|
-| Principal | **A) BALANZA** | Abre el submenú BALANZA (B y C quedan preparadas "a definir"). |
-| BALANZA | **1) Carga de Documentación** | Preguntas libres. Responde con IA usando **sólo** la base de conocimiento de `knowledge/` (editable sin tocar código). Acepta capturas (JPG/PNG/WEBP) y PDF. |
-| BALANZA | **2) Documentación de Chofer** | Pide el DNI → consulta `POST /api/vencimientos/chofer` → muestra Licencia / 931 / ART con estado ✅ ⚠️ ❌ ➖ → luego responde preguntas sobre esos datos con IA. |
-| BALANZA | **3) Documentación de Camión o Acoplado** | Pide la patente → consulta `POST /api/vencimientos/camion` → muestra Seguro / VTV → preguntas con IA. |
+**Saludo** (conversación nueva): foto de Enri + "¡Hola, Pedro Carlos Mentasti!" (nombre completo buscado en SeaLink por el teléfono, sólo lectura; si el número no figura, saludo genérico) + menú con botones. Mientras BALANZA sea la única sección, el menú principal se saltea (reaparece solo cuando B o C tengan destino).
 
-Atajos en cualquier momento: `menu`, `volver`, `ayuda`, `persona` (deriva a un agente humano y el bot se calla).
+| Opción (botón) | Comportamiento |
+|---|---|
+| **Cargar documentación** | Preguntas libres. Responde con IA usando **sólo** la base de conocimiento de `knowledge/` (editable sin tocar código). Aclara siempre que la carga se hace en la página web. |
+| **Chofer por DNI** | Pide el DNI → `POST /api/vencimientos/chofer` → Licencia / 931 / ART con estado ✅ ⚠️ ❌ ➖ → preguntas sobre esos datos con IA. |
+| **Camión por patente** | Ídem con la patente → Seguro / VTV. |
 
-**Saludo por nombre:** al iniciar una conversación, el bot busca el teléfono del remitente en SeaLink (`POST /api/vencimientos/chofer/telefono`, anexo del manual, sólo lectura) y saluda por el nombre ("¡Hola, Pedro! 👋..."). Si el número no figura o la consulta falla, saluda genérico sin trabarse. Nota: el anexo documenta el campo `Razon_Social` pero la API real responde `razon_Social`; el cliente tolera ambas.
+**Reglas de conversación** (decisiones del equipo, ver historial de commits):
+- Cada respuesta cierra con dos botones: **[Menú 😊] [Eso es todo, gracias]** (estilo Banco Provincia). "Eso es todo" despide y cierra la conversación.
+- **Fotos y archivos se ignoran por completo**: nunca se piden, nunca se procesan; una foto sola recibe un aviso fijo + el menú. La IA tiene prohibido pedirlas.
+- **Buffer de mensajes** (`DEBOUNCE_SECONDS`, 7 s): junta lo que la persona escribe y responde una vez. Botones, opciones, saludos, DNI y patentes responden al instante; el primer mensaje de una conversación nunca espera.
+- **Seguimientos desde el último mensaje del cliente**: 3 min "¿necesitás algo más?" (con botones), 6 min despedida + cierre, 9 min respaldo de reseteo.
+- Un DNI o patente escritos en el menú **consultan directamente**; cualquier otra cosa que no sea una opción la responde la IA (nunca "no entendí").
+- 100 % automático (`HANDOFF_ENABLED=false`): ante "quiero hablar con alguien" explica que la atención es automática. Si un humano del equipo escribe desde Chatwoot (con SU usuario, no el del token), el bot se aparta solo.
+- Despedidas formales ("Saludos."), nunca coloquiales.
+- Límites anti-abuso por chat y por día: `DAILY_AI_LIMIT` y `DAILY_LOOKUP_LIMIT` (30 c/u).
 
-Reglas de vigencia (manual SeaLink): fecha `< hoy` = **VENCIDO**, `>= hoy` = **VIGENTE**, `null` = **SIN FECHA INFORMADA**. Además se avisa **⚠️ por vencer** cuando faltan 15 días o menos (igual que la plataforma).
+Reglas de vigencia (manual SeaLink): fecha `< hoy` = **VENCIDO**, `>= hoy` = **VIGENTE**, `null` = **SIN FECHA INFORMADA**; además **⚠️ por vencer** cuando faltan 15 días o menos. "Hoy" se calcula en hora argentina.
 
 ## Estructura del proyecto
 
@@ -42,14 +49,14 @@ bot/
 │   ├── index.ts                ← arranque del servidor HTTP
 │   ├── container.ts            ← armado de dependencias
 │   ├── config.ts               ← variables de entorno validadas (Zod)
-│   ├── server/                 ← Express: /health y /webhooks/chatwoot
+│   ├── server/                 ← Express: /health, webhook, buffer y seguimientos
 │   ├── channels/chatwoot/      ← parseo del webhook + cliente API de Chatwoot
 │   ├── bot/                    ← MOTOR: máquina de estados
 │   │   ├── engine.ts           ← flujo por mensaje (sesión, comandos, handler, transición)
 │   │   ├── menus.ts            ← definición de menús (acá se agregan opciones nuevas)
 │   │   ├── commands.ts         ← comandos globales (menu / volver / persona / ayuda)
 │   │   └── handlers/           ← un archivo por funcionalidad (carga, chofer, camión, menús)
-│   ├── ai/                     ← Claude: prompts, base de conocimiento, adjuntos
+│   ├── ai/                     ← Claude: prompts, base de conocimiento, cliente
 │   ├── integrations/sealink/   ← API de vencimientos (auth JWT, token cache, reintento 401)
 │   ├── domain/                 ← reglas puras: validaciones (DNI, patente) y vencimientos
 │   ├── storage/                ← sesiones (memoria / Supabase) y log de mensajes

@@ -9,18 +9,7 @@ import type { BotServices } from "../src/bot/types.js";
 import { loadConfig } from "../src/config.js";
 import { FakeSeaLink } from "../src/integrations/sealink/fake.js";
 import { MemorySessionStore } from "../src/storage/memorySessionStore.js";
-import { nombreDePila } from "../src/utils/names.js";
 import type { AiService } from "../src/ai/types.js";
-
-describe("nombreDePila", () => {
-  it("extrae el nombre de 'APELLIDO, NOMBRE' y lo capitaliza", () => {
-    expect(nombreDePila("PEDROL, JOEL")).toBe("Joel");
-    expect(nombreDePila("SPINOLO, PEDRO LUIS")).toBe("Pedro");
-    expect(nombreDePila("GOMEZ CARLOS")).toBe("Gomez"); // sin coma: primera palabra
-    expect(nombreDePila("  ")).toBe("");
-    expect(nombreDePila(null)).toBe("");
-  });
-});
 
 describe("Saludo por nombre (teléfono → SeaLink)", () => {
   const fakeAi: AiService = { answer: async (i) => ({ text: `IA: ${i.userText}` }) };

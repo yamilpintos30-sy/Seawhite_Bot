@@ -8,16 +8,10 @@ export interface ChatTurn {
   content: string;
 }
 
-/** Archivo adjunto ya descargado y listo para enviar al modelo. */
-export type AiAttachment =
-  | { kind: "image"; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp"; base64: string }
-  | { kind: "pdf"; base64: string };
-
 export interface AiAnswerInput {
   mode: AiMode;
   history: ChatTurn[];
   userText: string;
-  attachments?: AiAttachment[];
   /** Datos de la API para modos chofer/camión. */
   data?: Record<string, unknown>;
 }

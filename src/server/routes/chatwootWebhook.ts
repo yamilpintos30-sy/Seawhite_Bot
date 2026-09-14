@@ -151,9 +151,6 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
     logger.info({ conversationId: message.conversationId, text: message.text.slice(0, 80), attachments: message.attachments.length }, "Mensaje entrante");
     const reply = await engine.handle(message);
     if (reply.rich && reply.rich.length > 0) {
-      // EXPERIMENTO "card": saludo imagen+texto+botones en UN solo mensaje.
-      // Si funciona, listo; si la API lo rechaza, seguimos con el formato split.
-      if (await trySendAsCard(message.conversationId, reply.rich)) return await maybeHandoff(reply, message.conversationId);
       // Versión enriquecida: foto de Enri y/o botones interactivos.
       for (const [i, item] of reply.rich.entries()) {
         if (item.kind === "image") {
@@ -209,28 +206,6 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
     }
   }
 
-  /**
-   * Intenta el saludo como tarjeta única. Devuelve true si se envió (no hace
-   * falta el split). Sólo aplica cuando el rich es exactamente imagen + botones,
-   * el estilo es "card" y hay URL pública para servir la imagen.
-   */
-  async function trySendAsCard(conversationId: string, rich: NonNullable<Awaited<ReturnType<BotEngine["handle"]>>["rich"]>): Promise<boolean> {
-    if (config.WELCOME_STYLE !== "card") return false;
-    if (rich.length !== 2 || rich[0]?.kind !== "image" || rich[1]?.kind !== "buttons") return false;
-    const publicBase = (config.PUBLIC_URL ?? process.env.RENDER_EXTERNAL_URL ?? "").replace(/\/$/, "");
-    if (!publicBase) {
-      logger.warn("WELCOME_STYLE=card pero no hay PUBLIC_URL/RENDER_EXTERNAL_URL; se usa el formato split");
-      return false;
-    }
-    try {
-      await chatwoot.sendWelcomeCard(conversationId, rich[0].caption, rich[1].buttons, `${publicBase}/assets/enri-marinero.png`);
-      logger.info({ conversationId }, "Saludo enviado como card única (experimental)");
-      return true;
-    } catch (err) {
-      logger.warn({ err, conversationId }, "La card experimental falló; se usa el formato split");
-      return false;
-    }
-  }
 
   /**
    * Saliente que no es del agent bot: ¿eco de un envío nuestro o vendedor humano?

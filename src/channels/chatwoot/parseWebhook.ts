@@ -19,7 +19,7 @@ import type { ChatwootAttachment, ChatwootWebhookPayload } from "./types.js";
 export type ChatwootEvent =
   | { kind: "message"; message: IncomingMessage }
   /** Mensaje saliente que NO es del agent bot: puede ser un vendedor humano o el eco del propio bot. */
-  | { kind: "agent_message"; conversationId: string; accountId: string; inboxId?: string; text: string; hasMedia: boolean; senderId?: string }
+  | { kind: "agent_message"; conversationId: string; accountId: string; inboxId?: string; text: string; senderId?: string }
   | { kind: "status_changed"; conversationId: string; accountId: string; status: string; assigneeName?: string }
   | { kind: "ignore"; reason: string };
 
@@ -93,7 +93,6 @@ export function parseChatwootWebhook(payload: ChatwootWebhookPayload): ChatwootE
       accountId: String(accountId),
       inboxId: extractInboxId(payload),
       text,
-      hasMedia: attachments.length > 0,
       senderId: payload.sender?.id !== undefined ? String(payload.sender.id) : undefined,
     };
   }

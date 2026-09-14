@@ -35,7 +35,7 @@ describe("parseChatwootWebhook", () => {
   it("clasifica salientes: agent_bot = eco a ignorar; cualquier otro = posible humano", () => {
     expect(parseChatwootWebhook({ ...base, message_type: "outgoing", sender: { type: "agent_bot" } }).kind).toBe("ignore");
     const humano = parseChatwootWebhook({ ...base, message_type: "outgoing", content: "hola, soy Pedro", sender: { id: 9, name: "Pedro", type: "user" } });
-    expect(humano).toMatchObject({ kind: "agent_message", conversationId: "10", text: "hola, soy Pedro", hasMedia: false });
+    expect(humano).toMatchObject({ kind: "agent_message", conversationId: "10", text: "hola, soy Pedro", senderId: "9" });
     // Sender vacío también se trata como posible humano (Chatwoot no siempre lo puebla).
     expect(parseChatwootWebhook({ ...base, message_type: "outgoing", sender: undefined }).kind).toBe("agent_message");
     // Saliente sin contenido (status update) no es un vendedor.

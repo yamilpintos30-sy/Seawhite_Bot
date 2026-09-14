@@ -1,16 +1,22 @@
 /**
- * Motor del bot.
+ * Motor del bot: máquina de estados pura, independiente del canal.
  *
  * Flujo por cada mensaje entrante:
- *   1. Cargar (o crear) la sesión de la conversación.
- *   2. Si la sesión expiró por inactividad -> volver al menú principal.
- *   3. Si una persona tomó la conversación -> no responder.
- *   4. Comandos globales (menu / volver / persona / ayuda).
- *   5. Delegar en el handler del estado actual.
- *   6. Si hubo cambio de estado -> mostrar la "entrada" del nuevo estado.
- *   7. Guardar la sesión y registrar los mensajes.
+ *   1. Cargar la sesión (o crear una: conversación nueva o expirada por TTL).
+ *   2. Conversación nueva -> saludo (identifica al chofer por teléfono en
+ *      SeaLink para el nombre) + imagen + menú con botones.
+ *   3. Si una persona tomó la conversación -> silencio (el cliente puede
+ *      despertar al bot con "/bot").
+ *   4. Foto/archivo sin texto -> aviso fijo + menú (las fotos se IGNORAN,
+ *      jamás llegan a la IA).
+ *   5. Comandos globales (menu/saludos, volver, cierre, ayuda, persona).
+ *   6. Handler del estado actual (menús, carga con IA, chofer, camión).
+ *   7. Transición: si el destino es un menú, la respuesta lleva botones.
+ *   8. Guardar sesión (o borrarla si la conversación se cerró) y registrar.
  *
- * Los mensajes de una misma conversación se procesan en orden (cola por conversación).
+ * Garantías: mensajes de una misma conversación en orden (cola por
+ * conversación); una falla de Supabase degrada a sesión en memoria sin
+ * cortar la respuesta; ninguna promesa perdida tumba el proceso.
  */
 import type { MessageLog } from "../storage/messageLog.js";
 import type { SessionStore } from "../storage/sessionStore.js";

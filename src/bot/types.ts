@@ -5,10 +5,17 @@
  * (ver `handlers/`) que decide qué responder y a qué estado pasar.
  */
 import type { AiService, ChatTurn } from "../ai/types.js";
-import type { IncomingAttachment } from "../ai/attachments.js";
 import type { SeaLinkService } from "../integrations/sealink/types.js";
 import type { AppConfig } from "../config.js";
 import type { Logger } from "../utils/logger.js";
+
+/** Adjunto que llega por el webhook. Se registra pero NUNCA se procesa (política: sin fotos). */
+export interface IncomingAttachment {
+  url: string;
+  /** Tipo según Chatwoot: "image", "file", "audio", "video"... */
+  fileType?: string;
+  contentType?: string;
+}
 
 export const BotState = {
   MAIN_MENU: "MAIN_MENU",

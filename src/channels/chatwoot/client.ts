@@ -1,10 +1,13 @@
 /**
- * Cliente mínimo de la API de Chatwoot: enviar mensajes (texto, imagen, botones)
- * y cambiar el estado de una conversación.
+ * Cliente de la API de Chatwoot: enviar mensajes (texto, imagen, botones),
+ * consultar estados y cambiar el estado de una conversación.
  * Docs: https://developers.chatwoot.com/api-reference
  *
  * Botones: `content_type: "input_select"`; en inboxes de WhatsApp Cloud, Chatwoot
  * los convierte en botones interactivos nativos (hasta 3).
+ * Nota histórica: el content_type "cards" (imagen+texto+botones en un mensaje)
+ * se probó el 2026-09-11 y el canal de WhatsApp lo descarta; por eso el saludo
+ * va en dos mensajes (imagen y luego botones, esperando la entrega).
  */
 import { readFile } from "node:fs/promises";
 import type { ButtonSpec } from "../../bot/types.js";
@@ -73,31 +76,6 @@ export class ChatwootClient {
       content: text,
       content_type: "input_select",
       content_attributes: { items: buttons.map((b) => ({ title: b.title, value: b.payload })) },
-      message_type: "outgoing",
-      private: false,
-    });
-  }
-
-  /**
-   * EXPERIMENTAL: tarjeta única (imagen + texto + botones) vía content_type
-   * "cards". Documentado por Chatwoot para Facebook; en WhatsApp depende de la
-   * versión. El caller debe tener un plan B si esto lanza error.
-   */
-  async sendWelcomeCard(conversationId: string, caption: string, buttons: ButtonSpec[], mediaUrl: string): Promise<void> {
-    sentTracker.record(conversationId, caption);
-    await this.request(`/conversations/${conversationId}/messages`, {
-      content: caption,
-      content_type: "cards",
-      content_attributes: {
-        items: [
-          {
-            media_url: mediaUrl,
-            title: "Enri ⚓",
-            description: caption,
-            actions: buttons.map((b) => ({ type: "postback", text: b.title, payload: b.payload })),
-          },
-        ],
-      },
       message_type: "outgoing",
       private: false,
     });
