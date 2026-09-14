@@ -142,8 +142,12 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
           if (i < reply.rich.length - 1) {
             // Garantizar el orden imagen -> botones: esperar la confirmación de
             // ENTREGA de la imagen (delivered/read) antes del siguiente mensaje.
-            if (imageMessageId) await chatwoot.waitMessageDelivered(message.conversationId, imageMessageId);
-            if (config.WELCOME_IMAGE_DELAY_MS > 0) await new Promise((r) => setTimeout(r, config.WELCOME_IMAGE_DELAY_MS));
+            // Si no se pudo confirmar, pausa larga de seguridad en vez del colchón corto.
+            const status = imageMessageId ? await chatwoot.waitMessageDelivered(message.conversationId, imageMessageId) : "sin-id";
+            const confirmada = status === "delivered" || status === "read";
+            const pausa = confirmada ? config.WELCOME_IMAGE_DELAY_MS : Math.max(config.WELCOME_IMAGE_DELAY_MS, 5000);
+            if (!confirmada) logger.warn({ conversationId: message.conversationId, status, pausa }, "Entrega de la imagen sin confirmar; pausa de seguridad");
+            if (pausa > 0) await new Promise((r) => setTimeout(r, pausa));
           }
         } else if (item.kind === "buttons") {
           await chatwoot.sendButtons(message.conversationId, item.text, item.buttons);

@@ -132,11 +132,13 @@ export class ChatwootClient {
   async waitMessageDelivered(conversationId: string, messageId: string, timeoutMs = 15_000): Promise<string> {
     const deadline = Date.now() + timeoutMs;
     let last = "";
+    let erroresSeguidos = 0;
     while (Date.now() < deadline) {
       try {
         const data = (await this.send(`/conversations/${conversationId}/messages`, {}, undefined, "GET")) as {
           payload?: Array<{ id?: number; status?: string }>;
         };
+        erroresSeguidos = 0;
         const status = data?.payload?.find((m) => String(m.id) === messageId)?.status ?? "";
         if (status !== last) {
           this.opts.logger.info({ conversationId, messageId, status }, "Estado de la imagen del saludo");
@@ -144,8 +146,11 @@ export class ChatwootClient {
         }
         if (status === "delivered" || status === "read" || status === "failed") return status;
       } catch (err) {
-        this.opts.logger.warn({ err, conversationId }, "No se pudo consultar el estado del mensaje");
-        return "unknown";
+        // Un error transitorio NO abandona la espera (abandonarla revivía la
+        // carrera imagen/botones); recién tras varios errores seguidos se corta.
+        erroresSeguidos += 1;
+        this.opts.logger.warn({ err, conversationId, erroresSeguidos }, "No se pudo consultar el estado del mensaje; se reintenta");
+        if (erroresSeguidos >= 4) return "unknown";
       }
       await new Promise((r) => setTimeout(r, 700));
     }

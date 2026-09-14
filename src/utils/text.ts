@@ -1,12 +1,17 @@
 /** Utilidades de texto para interpretar mensajes del usuario y formatear respuestas. */
 
-/** Minúsculas, sin tildes, sin espacios repetidos. Útil para comparar comandos. */
+/**
+ * Minúsculas, sin tildes, sin emojis ni símbolos, sin espacios repetidos.
+ * Clave para los botones: "Menú 😊" debe normalizar a "menu" — sin limpiar el
+ * emoji, el toque del botón no coincidía con el comando y terminaba en la IA.
+ * Se conservan letras, números, espacios y "/" (por el comando /bot).
+ */
 export function normalizeText(input: string): string {
   return input
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
-    .replace(/[¿?¡!.,;:]/g, " ")
+    .replace(/[^\p{L}\p{N}\s/]/gu, " ")
     .replace(/\s+/g, " ")
     .trim();
 }

@@ -104,6 +104,12 @@ describe("menús y comandos", () => {
     expect(detectGlobalCommand("¿qué pongo en el menú de documentación?")).toBeUndefined();
   });
 
+  it("los títulos de los botones CON emoji disparan el comando (visto en producción)", () => {
+    expect(detectGlobalCommand("Menú 😊")).toBe("MAIN_MENU");
+    expect(detectGlobalCommand("Eso es todo, gracias")).toBe("FINISH");
+    expect(detectGlobalCommand("eso es todo gracias 🙌")).toBe("FINISH");
+  });
+
   it("frases de menú (visto en producción): 'quiero volver al menu principal'", () => {
     expect(detectGlobalCommand("quiero volver al menu principal")).toBe("MAIN_MENU");
     expect(detectGlobalCommand("llevame al menú")).toBe("MAIN_MENU");
