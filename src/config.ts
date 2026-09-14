@@ -18,7 +18,7 @@ const schema = z.object({
   /** Nombre del asistente (aparece en el saludo y en la personalidad de la IA). */
   BOT_NAME: z.string().default("Enri"),
   /** Imagen del saludo (avatar). Ruta relativa al proyecto; vacío o inexistente = saludo sólo texto. */
-  WELCOME_IMAGE: z.string().default("assets/enri-marinero.png"),
+  WELCOME_IMAGE: z.string().default("assets/enri.jpg"),
   /**
    * Pausa extra (ms) después de que la imagen del saludo confirme entrega y
    * antes de mandar los botones. La espera principal es por estado
@@ -109,7 +109,7 @@ const schema = z.object({
    * en varios renglones). Botones, opciones de menú, comandos, DNI y patentes
    * responden al instante. 0 = sin buffer.
    */
-  DEBOUNCE_SECONDS: z.coerce.number().int().min(0).default(10),
+  DEBOUNCE_SECONDS: z.coerce.number().int().min(0).default(7),
   /** Minutos tras la última respuesta para preguntar "¿necesitás algo más?". 0 = off. */
   FOLLOWUP_ASK_MINUTES: z.coerce.number().min(0).default(3),
   /** Minutos para la despedida ("espero haberte sido útil..."). 0 = off. */

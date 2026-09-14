@@ -59,7 +59,7 @@ services:
 
       # --- Ritmo de conversación ---
       - key: DEBOUNCE_SECONDS
-        value: "10"
+        value: "7"
       - key: FOLLOWUP_ASK_MINUTES
         value: "3"
       - key: FOLLOWUP_BYE_MINUTES

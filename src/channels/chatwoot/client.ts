@@ -114,10 +114,13 @@ export class ChatwootClient {
       return null;
     }
     sentTracker.record(conversationId, caption);
+    // Tipo MIME según la extensión del archivo configurado (jpg comprimido, png, webp).
+    const ext = (this.opts.welcomeImagePath ?? "").toLowerCase().split(".").pop() ?? "png";
+    const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : ext === "webp" ? "image/webp" : "image/png";
     const form = new FormData();
     form.append("content", caption);
     form.append("message_type", "outgoing");
-    form.append("attachments[]", new Blob([new Uint8Array(image)], { type: "image/png" }), "enri.png");
+    form.append("attachments[]", new Blob([new Uint8Array(image)], { type: mime }), `enri.${ext}`);
     const created = (await this.requestForm(`/conversations/${conversationId}/messages`, form)) as { id?: number };
     return created?.id !== undefined ? String(created.id) : null;
   }
