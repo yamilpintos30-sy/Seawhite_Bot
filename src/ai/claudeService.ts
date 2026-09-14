@@ -33,6 +33,8 @@ type BetaContent = Anthropic.Beta.Messages.BetaContentBlockParam;
 export class ClaudeService implements AiService {
   private readonly client: Anthropic;
   private supportsSystemRole = true;
+  /** El fallback del lado del servidor es una BETA: si la API la rechaza, se desactiva sola. */
+  private fallbacksAvailable = true;
 
   constructor(
     private readonly config: AppConfig,
@@ -74,6 +76,13 @@ export class ClaudeService implements AiService {
         this.supportsSystemRole = false;
         return this.call(system, this.buildMessages(input, dynamicContext, false));
       }
+      // Si Anthropic retira o cambia la beta de fallbacks, NO puede caerse el bot:
+      // se desactiva sola y se reintenta el mismo pedido sin ese parámetro.
+      if (err instanceof Anthropic.BadRequestError && this.fallbacksAvailable && this.config.CLAUDE_FALLBACKS && /fallback|beta/i.test(err.message)) {
+        this.logger.warn({ err: err.message }, "La API rechazó el parámetro de fallbacks (beta); se desactiva y se reintenta sin él");
+        this.fallbacksAvailable = false;
+        return this.call(system, messages);
+      }
       throw this.translateError(err);
     }
   }
@@ -92,7 +101,7 @@ export class ClaudeService implements AiService {
       thinking: { type: "adaptive" },
       output_config: { effort: this.config.CLAUDE_EFFORT },
     };
-    if (this.config.CLAUDE_FALLBACKS) {
+    if (this.config.CLAUDE_FALLBACKS && this.fallbacksAvailable) {
       // Fallback del lado del servidor: si el modelo principal rechaza por política,
       // la API reintenta con otro modelo dentro de la misma llamada.
       params.betas = ["server-side-fallback-2026-07-01"];

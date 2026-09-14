@@ -117,7 +117,10 @@ export function matchOption(menu: Menu, input: string): MenuOption | undefined {
   // Coincidencia exacta con un alias o con la etiqueta completa
   const exact = menu.options.find((o) => normalizeText(o.label) === text || o.aliases.includes(text));
   if (exact) return exact;
-  // Coincidencia parcial: gana la opción cuyo alias (o etiqueta) más largo aparece en el texto
+  // Coincidencia parcial SOLO para textos cortos: una frase larga que contiene
+  // "documentacion" o "cargar" es una CONSULTA, no una elección de opción
+  // (antes secuestraba la pregunta y mostraba el intro del modo).
+  if (text.length > 30) return undefined;
   let best: { option: MenuOption; length: number } | undefined;
   for (const option of menu.options) {
     for (const candidate of [normalizeText(option.label), ...option.aliases]) {

@@ -111,6 +111,21 @@ describe("BotEngine — menús", () => {
     expect(t.ai.calls).toHaveLength(0); // nunca fue a la IA
   });
 
+  it("un DNI escrito directo en el menú consulta al chofer de una", async () => {
+    await t.send("hola");
+    const reply = await t.send("35413889");
+    expect(reply.messages.join(" ")).toContain("PEREZ JUAN");
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.CHOFER_QA);
+    expect(t.ai.calls).toHaveLength(0);
+  });
+
+  it("una patente escrita directo en el menú consulta al camión de una", async () => {
+    await t.send("hola");
+    const reply = await t.send("AA006QS");
+    expect(reply.messages.join(" ")).toContain("AA006QS");
+    expect((await t.sessions.get("c1"))?.state).toBe(BotState.CAMION_QA);
+  });
+
   it("volver y menu llevan al menú BALANZA (no al principal salteado)", async () => {
     await t.send("hola");
     await t.send("1");

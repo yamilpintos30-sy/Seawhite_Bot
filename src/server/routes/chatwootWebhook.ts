@@ -57,6 +57,15 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
     handleMessage(merged).catch((err) => logger.error({ err, conversationId: merged.conversationId }, "Error procesando mensaje"));
   });
 
+  // En un apagado (deploy), los mensajes que estaban juntándose se procesan YA:
+  // sin esto, una consulta a mitad del buffer quedaba sin responder para siempre.
+  const flushOnShutdown = () => {
+    logger.info("Apagado: vaciando buffers de mensajes pendientes");
+    debouncer.flushAll();
+  };
+  process.once("SIGTERM", flushOnShutdown);
+  process.once("SIGINT", flushOnShutdown);
+
   // Seguimientos por inactividad (¿algo más? / despedida / reset).
   const followups = new FollowupScheduler({
     askMs: Math.round(config.FOLLOWUP_ASK_MINUTES * 60_000),

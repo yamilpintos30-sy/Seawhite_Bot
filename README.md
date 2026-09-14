@@ -143,6 +143,13 @@ El tono y las reglas de oro (no inventar, pedir captura, no prometer aprobación
 - **Duplicados / orden**: los reintentos del webhook se descartan por ID y los mensajes de una misma conversación se procesan en orden.
 - **Tablas Supabase**: `bot_sessions` (estado actual) y `bot_messages` (todo lo que entra y sale, útil para ver qué preguntan y mejorar `knowledge/`).
 
+## Notas operativas
+
+- **SIEMPRE 1 sola instancia en Render.** El bot guarda estado en memoria (buffer de mensajes, anti-eco, cola por conversación, timers de seguimiento). Escalar a 2+ instancias rompe esos mecanismos de formas difíciles de diagnosticar. Si algún día hace falta más capacidad, subir el tamaño de la instancia, no la cantidad.
+- **Qué se pierde en cada deploy/reinicio** (tolerable, pero explica rarezas puntuales): los timers de seguimiento pendientes (un "¿necesitás algo más?" que no llega), los contadores de límite diario y el anti-eco de texto (el anti-eco principal, por usuario del token, se reconstruye solo). El buffer de mensajes se vacía y procesa antes de apagar (SIGTERM). Las sesiones viven en Supabase y sobreviven.
+- **Los logs de Render contienen datos personales** (nombres, teléfonos, texto de las consultas): acceso a Render = acceso a conversaciones.
+- **Si el WEBHOOK_SECRET se filtra** (viaja en la URL del webhook): rotarlo lleva 1 minuto — cambiar la variable en Render y actualizar la URL en Chatwoot.
+
 ## Seguridad
 
 - `.env` y `Credenciales.txt` **nunca** se suben a git (ver `.gitignore`).

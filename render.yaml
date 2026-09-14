@@ -7,6 +7,9 @@ services:
     name: seawhite-bot
     runtime: node
     plan: starter # 0.5 CPU / 512 MB — la instancia básica de la guía (~US$7/mes)
+    # ⚠️ SIEMPRE 1 instancia: el bot guarda estado en memoria (buffer, anti-eco,
+    # cola por conversación). Con 2+ instancias esos mecanismos se rompen.
+    numInstances: 1
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /health

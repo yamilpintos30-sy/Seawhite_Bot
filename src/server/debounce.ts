@@ -91,6 +91,16 @@ export class MessageDebouncer {
     }
   }
 
+  /**
+   * Vacía TODOS los buffers ya mismo (se usa en el apagado del proceso: un
+   * deploy no puede dejar consultas de clientes sin responder en el limbo).
+   */
+  flushAll(): void {
+    for (const conversationId of [...this.pending.keys()]) {
+      this.flush(conversationId);
+    }
+  }
+
   /** Descarta el buffer de una conversación (por ejemplo, al resetearla). */
   clear(conversationId: string): void {
     const p = this.pending.get(conversationId);

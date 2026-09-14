@@ -17,8 +17,10 @@ const COMMANDS: Array<{ command: GlobalCommand; words: string[] }> = [
     words: ["menu", "menu principal", "inicio", "empezar", "reiniciar", "hola", "holaa", "buenas", "buen dia", "buenos dias", "buenas tardes", "buenas noches", "hey"],
   },
   { command: "BACK", words: ["volver", "atras", "volver atras", "anterior"] },
-  // Botón "Eso es todo, gracias" (y variantes): despedida + cierre de la conversación.
-  { command: "FINISH", words: ["fin", "eso es todo gracias", "eso es todo", "nada mas", "listo gracias", "no gracias", "salir", "chau", "gracias"] },
+  // Botón "Eso es todo, gracias" y frases INEQUÍVOCAS de cierre. OJO: "gracias"
+  // o "salir" solos NO cierran (un "gracias" de cortesía en medio de una consulta
+  // borraba toda la conversación).
+  { command: "FINISH", words: ["fin", "eso es todo gracias", "eso es todo", "nada mas", "listo gracias", "no gracias", "chau"] },
   {
     command: "HANDOFF",
     words: ["humano", "persona", "agente", "operador", "asesor", "hablar con alguien", "hablar con una persona", "quiero hablar con alguien"],

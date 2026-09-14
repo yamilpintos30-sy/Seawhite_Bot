@@ -94,6 +94,9 @@ describe("menús y comandos", () => {
     expect(matchOption(BALANZA_MENU, "documentación de chofer")?.key).toBe("2");
     expect(matchOption(BALANZA_MENU, "acoplado")?.key).toBe("3");
     expect(matchOption(BALANZA_MENU, "no se")).toBeUndefined();
+    // Una frase larga que CONTIENE un alias es una consulta, no una elección.
+    expect(matchOption(BALANZA_MENU, "tengo un problema con la documentación del camión")).toBeUndefined();
+    expect(matchOption(BALANZA_MENU, "quiero cargar un chofer nuevo y no me deja la página")).toBeUndefined();
   });
 
   it("detectGlobalCommand", () => {
@@ -108,6 +111,9 @@ describe("menús y comandos", () => {
     expect(detectGlobalCommand("Menú 😊")).toBe("MAIN_MENU");
     expect(detectGlobalCommand("Eso es todo, gracias")).toBe("FINISH");
     expect(detectGlobalCommand("eso es todo gracias 🙌")).toBe("FINISH");
+    // "gracias" o "salir" solos NO cierran la conversación (cortesía común).
+    expect(detectGlobalCommand("gracias")).toBeUndefined();
+    expect(detectGlobalCommand("salir")).toBeUndefined();
   });
 
   it("frases de menú (visto en producción): 'quiero volver al menu principal'", () => {

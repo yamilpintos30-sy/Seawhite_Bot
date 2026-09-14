@@ -190,7 +190,25 @@ export class ChatwootClient {
     return this.send(path, {}, form);
   }
 
+  /**
+   * Llamada a la API de Chatwoot con UN reintento ante errores transitorios
+   * (red caída o 5xx). Sin esto, un hipo de Chatwoot dejaba al usuario sin su
+   * respuesta aunque la IA ya la hubiera generado.
+   */
   private async send(path: string, headers: Record<string, string>, body: string | FormData | undefined, method: "POST" | "GET" = "POST"): Promise<unknown> {
+    try {
+      return await this.sendOnce(path, headers, body, method);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const transitorio = /HTTP 5\d\d/.test(msg) || /fetch|network|abort|ECONN|ETIMEDOUT/i.test(msg);
+      if (!transitorio) throw err;
+      this.opts.logger.warn({ path, err: msg }, "Chatwoot falló; se reintenta una vez");
+      await new Promise((r) => setTimeout(r, 800));
+      return this.sendOnce(path, headers, body, method);
+    }
+  }
+
+  private async sendOnce(path: string, headers: Record<string, string>, body: string | FormData | undefined, method: "POST" | "GET"): Promise<unknown> {
     const url = `${this.opts.baseUrl.replace(/\/$/, "")}/api/v1/accounts/${this.opts.accountId}${path}`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.opts.timeoutMs ?? 15000);
