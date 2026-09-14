@@ -75,6 +75,14 @@ export class BotEngine {
     await this.deps.sessions.delete(conversationId);
   }
 
+  /**
+   * ¿Esta conversación ya tiene sesión? El canal lo usa para saltear el buffer
+   * en el PRIMER mensaje: el saludo tiene que salir al instante, no 7 s después.
+   */
+  async isKnownConversation(conversationId: string): Promise<boolean> {
+    return (await this.safeGetSession(conversationId)) !== null;
+  }
+
   /** Marca la conversación como tomada por una persona. */
   async markHandedOff(conversationId: string, accountId: string): Promise<void> {
     const { services } = this.deps;

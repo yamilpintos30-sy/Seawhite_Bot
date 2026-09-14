@@ -124,8 +124,15 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
 
     // El usuario escribió: se cancelan los seguimientos pendientes y el mensaje
     // entra al buffer (o se procesa al instante si es botón/comando/DNI/patente).
+    // El PRIMER mensaje de una conversación nunca espera: el saludo sale ya.
     followups.cancel(message.conversationId);
-    debouncer.push(message);
+    void (async () => {
+      if (!(await engine.isKnownConversation(message.conversationId))) {
+        await handleMessage(message);
+        return;
+      }
+      debouncer.push(message);
+    })().catch((err) => logger.error({ err, conversationId: message.conversationId }, "Error procesando mensaje"));
   });
 
   async function handleMessage(message: Parameters<BotEngine["handle"]>[0]): Promise<void> {

@@ -21,6 +21,15 @@ const INSTANT_EXACT = new Set<string>([
   ...BALANZA_MENU.options.flatMap((o) => (o.buttonTitle ? [normalizeText(o.buttonTitle)] : [])),
   "/bot",
   "bot",
+  // Saludos: nadie escribe más después de un "hola"; esperar 7 s ahí es puro lag.
+  "hola",
+  "holaa",
+  "buenas",
+  "buen dia",
+  "buenos dias",
+  "buenas tardes",
+  "buenas noches",
+  "hey",
 ]);
 
 export function isInstantMessage(text: string): boolean {

@@ -30,13 +30,13 @@ describe("nombreCompleto", () => {
 
 describe("isInstantMessage", () => {
   it("botones, opciones, comandos, DNI y patentes son instantáneos", () => {
-    for (const t of ["1", "2", "3", "Chofer por DNI", "Cargar documentación", "menu", "volver", "/bot", "35413889", "AA123BB"]) {
+    for (const t of ["1", "2", "3", "Chofer por DNI", "Cargar documentación", "menu", "volver", "/bot", "35413889", "AA123BB", "hola", "Buenas tardes"]) {
       expect(isInstantMessage(t), t).toBe(true);
     }
   });
 
   it("las consultas escritas NO son instantáneas (van al buffer)", () => {
-    for (const t of ["hola", "me rechazaron la art", "¿qué pongo en el campo dni?"]) {
+    for (const t of ["me rechazaron la art", "¿qué pongo en el campo dni?", "tengo un problema con la carga"]) {
       expect(isInstantMessage(t), t).toBe(false);
     }
   });
