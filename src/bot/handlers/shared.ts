@@ -52,9 +52,11 @@ export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Rec
     return { messages: ["Contame por escrito tu consulta y te ayudo."] };
   }
 
-  // Sin una sola letra ("123", "123456", "?!"): no es una consulta ni vale una
-  // llamada a la IA (que respondía algo genérico que parecía la opción 1).
-  if (!/\p{L}/u.test(message.text)) {
+  // Sin una sola letra ("123", "123456", "?!") y SIN charla previa: no es una
+  // consulta ni vale una llamada a la IA (respondía algo genérico que parecía la
+  // opción 1). Con charla previa sí va a la IA: puede ser la respuesta a lo que
+  // se venía hablando (p. ej. el teléfono que la página no le toma).
+  if (!/\p{L}/u.test(message.text) && session.history.length === 0) {
     return notUnderstood(/\d/.test(message.text) ? NUMBER_NOT_UNDERSTOOD_MESSAGE : NOT_UNDERSTOOD_MESSAGE);
   }
 

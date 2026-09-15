@@ -115,6 +115,16 @@ describe("mensajes no entendidos", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it("un número en medio de una charla con la IA va a la IA (puede ser la respuesta)", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    await t.send("ingreso el telefono en la pagina y no me lo toma");
+    const reply = await t.send("2392400619");
+    expect(reply.messages[0]).toBe("IA: 2392400619");
+    expect(calls).toHaveLength(2);
+  });
+
   it("si la IA no entiende, se muestra el menú real en un solo mensaje con botones", async () => {
     const { ai } = trackedAi();
     const t = setup(ai);
