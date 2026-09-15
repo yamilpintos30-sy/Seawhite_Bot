@@ -59,6 +59,22 @@ export function isGreetingOnly(input: string): boolean {
   return words.length > 0 && words.every((w) => GREETING_WORDS.has(w));
 }
 
+/** Palabras de una respuesta de cortesía a una despedida ("gracias!", "ok dale", "igualmente, saludos"). */
+const COURTESY_WORDS = new Set([
+  "gracias", "graciass", "muchas", "mil", "muchisimas", "ok", "oka", "okey", "okis", "dale", "genial", "perfecto", "listo",
+  "bueno", "buenisimo", "barbaro", "joya", "excelente", "igualmente", "saludos", "saludo", "chau", "chao", "adios", "bien",
+  "de", "nada", "a", "vos", "usted", "ti", "tambien", "que", "sigas", "siga", "abrazo", "gente", "enri", "si", "no",
+]);
+
+/**
+ * true si el mensaje es SOLO cortesía (o un emoji/sticker suelto, que llega sin texto).
+ * Tras una despedida no debe reabrir la conversación con saludo y menú.
+ */
+export function isCourtesyOnly(input: string): boolean {
+  const words = normalizeText(input).split(" ").filter(Boolean);
+  return words.every((w) => COURTESY_WORDS.has(w));
+}
+
 export function helpText(handoffEnabled: boolean): string {
   return [
     "Podés navegar el asistente con estos atajos:",

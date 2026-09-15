@@ -193,6 +193,34 @@ describe("mensajes no entendidos", () => {
     expect(reply.messages.join("\n")).toContain("PEREZ JUAN");
   });
 
+  it("tras el cierre, un 'Gracias' o un emoji no reabren la conversación", async () => {
+    const t = setup();
+    await t.send("hola");
+    const bye = await t.send("Eso es todo, gracias");
+    expect(bye.reset).toBe(true);
+    for (const cortesia of ["Gracias", "ok, igualmente!", "👍", "Muchas gracias, saludos"]) {
+      expect((await t.send(cortesia)).messages).toEqual([]);
+    }
+  });
+
+  it("tras el cierre, un 'hola' o una consulta real sí arrancan de nuevo con el saludo", async () => {
+    const t = setup();
+    await t.send("hola");
+    await t.send("Eso es todo, gracias");
+    const hola = await t.send("hola");
+    expect(hola.rich![0]).toMatchObject({ kind: "image" });
+
+    await t.send("Eso es todo, gracias");
+    const consulta = await t.send("gracias, otra cosa: que pongo en el campo dni");
+    expect(consulta.messages.join("\n")).toContain("IA: gracias, otra cosa");
+  });
+
+  it("un 'gracias' en medio de una conversación abierta no se silencia", async () => {
+    const t = setup();
+    await t.send("hola");
+    expect((await t.send("Gracias")).messages.length).toBeGreaterThan(0);
+  });
+
   it("una consulta entendible sigue yendo a la IA", async () => {
     const { ai, calls } = trackedAi();
     const t = setup(ai);

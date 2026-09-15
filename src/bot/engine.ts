@@ -23,7 +23,7 @@ import type { MessageLog } from "../storage/messageLog.js";
 import type { SessionStore } from "../storage/sessionStore.js";
 import { nombreCompleto } from "../utils/names.js";
 import { normalizeText } from "../utils/text.js";
-import { detectGlobalCommand, helpText, isGreetingOnly } from "./commands.js";
+import { detectGlobalCommand, helpText, isCourtesyOnly, isGreetingOnly } from "./commands.js";
 import { getHandler, PARENT_STATE } from "./handlers/index.js";
 import { welcomeLine } from "./handlers/menuHandlers.js";
 import { BALANZA_MENU, MAIN_MENU, menuButtons, startState, type Menu } from "./menus.js";
@@ -46,6 +46,9 @@ const GENERIC_ERROR = "Uy, tuve un problema para procesar tu mensaje. Probá de 
 const NO_PHOTOS_MESSAGE = "Por acá no proceso fotos ni archivos. Contame por escrito lo que necesitás, o elegí una opción 👇";
 const FAREWELL_MESSAGE = "¡Gracias por escribirme! Cualquier consulta sobre documentación o vencimientos, acá estoy. Saludos.";
 
+/** Durante cuánto tiempo tras el cierre un "gracias" suelto se toma como cortesía y no reabre la conversación. */
+const COURTESY_AFTER_CLOSE_MS = 2 * 60 * 60_000;
+
 /** Comandos con los que el cliente despierta al bot mientras está derivado a una persona. */
 const REACTIVATION_TRIGGERS = ["/bot", "bot", "volver al bot", "reactivar bot", "activar bot"];
 
@@ -62,6 +65,11 @@ export interface BotEngineDeps {
 
 export class BotEngine {
   private readonly queues = new Map<string, Promise<unknown>>();
+  /**
+   * Cuándo se cerró cada conversación. En memoria: tras un reinicio, un
+   * "gracias" posterior recibe el saludo (aceptable, es sólo cortesía).
+   */
+  private readonly closedAt = new Map<string, number>();
 
   constructor(private readonly deps: BotEngineDeps) {}
 
@@ -80,8 +88,11 @@ export class BotEngine {
     return run;
   }
 
-  /** Olvida la sesión (por ejemplo, cuando la conversación se resuelve en Chatwoot). */
+  /** Olvida la sesión: despedida, "Eso es todo, gracias" o conversación resuelta en Chatwoot. */
   async reset(conversationId: string): Promise<void> {
+    const now = this.deps.services.now().getTime();
+    for (const [id, at] of this.closedAt) if (now - at > COURTESY_AFTER_CLOSE_MS) this.closedAt.delete(id);
+    this.closedAt.set(conversationId, now);
     await this.deps.sessions.delete(conversationId);
   }
 
@@ -105,6 +116,15 @@ export class BotEngine {
     let isNew = false;
 
     if (!session) {
+      // "Gracias" / "ok" / 👍 en respuesta a la despedida: no se reabre la
+      // conversación con saludo y menú (visto en producción). Silencio.
+      const closed = this.closedAt.get(message.conversationId);
+      if (closed !== undefined && now.getTime() - closed <= COURTESY_AFTER_CLOSE_MS && isCourtesyOnly(message.text)) {
+        logger.info({ conversationId: message.conversationId }, "Cortesía tras el cierre: no se reabre la conversación");
+        await messageLog?.logIncoming(message, "CERRADA");
+        return { messages: [] };
+      }
+      this.closedAt.delete(message.conversationId);
       session = this.newSession(message.conversationId, message.accountId, message.sender);
       isNew = true;
     } else if (now.getTime() - Date.parse(session.updatedAt) > config.SESSION_TTL_MINUTES * 60_000) {
