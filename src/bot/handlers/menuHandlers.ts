@@ -39,10 +39,8 @@ export function createMenuHandler(menu: Menu): StateHandler {
           return camionDominioHandler.handle(ctx);
         }
         // No es una opción del menú: lo atiende la IA igual que en Carga de
-        // Documentación (nada de "No entendí" + menú en texto plano). Los
-        // botones de pie vuelven a aparecer solos con la respuesta.
-        const messages = await answerWithAi(ctx, "carga");
-        return { messages };
+        // Documentación. Si no se entiende, answerWithAi vuelve al menú real.
+        return answerWithAi(ctx, "carga");
       }
       if (option.target === null) {
         return {

@@ -24,8 +24,8 @@ const config = loadConfig({
   SUPABASE_SERVICE_ROLE_KEY: "",
 });
 
-function setup() {
-  const services: BotServices = { ai: fakeAi, sealink: new FakeSeaLink(), config, logger: pino({ level: "silent" }), now: () => new Date("2026-09-11T15:00:00Z") };
+function setup(ai: AiService = fakeAi) {
+  const services: BotServices = { ai, sealink: new FakeSeaLink(), config, logger: pino({ level: "silent" }), now: () => new Date("2026-09-11T15:00:00Z") };
   const engine = new BotEngine({ services, sessions: new MemorySessionStore() });
   let n = 0;
   const send = (text: string, conversationId = "b1") => engine.handle({ id: String(++n), conversationId, accountId: "1", text, attachments: [] });
@@ -82,5 +82,66 @@ describe("saludo enriquecido", () => {
     const t = setup();
     const reply = await t.send("hola");
     expect(reply.messages.join("\n")).not.toContain("Volver al menú principal");
+  });
+});
+
+describe("mensajes no entendidos", () => {
+  /** IA de prueba que cuenta llamadas y marca como ininteligible lo que contenga "hshdkf". */
+  function trackedAi() {
+    const calls: string[] = [];
+    const ai: AiService = {
+      answer: async (i) => {
+        calls.push(i.userText);
+        return { text: i.userText.includes("hshdkf") ? "[[NO_ENTENDI]]" : `IA: ${i.userText}` };
+      },
+    };
+    return { ai, calls };
+  }
+
+  function buttonsOf(reply: Awaited<ReturnType<ReturnType<typeof setup>["send"]>>) {
+    return reply.rich?.find((r) => r.kind === "buttons") as { text: string; buttons: unknown[] } | undefined;
+  }
+
+  it("un número que no es opción ni DNI muestra el menú real, sin llamar a la IA", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    for (const numero of ["123", "123456"]) {
+      const reply = await t.send(numero);
+      const botones = buttonsOf(reply);
+      expect(botones?.buttons).toHaveLength(3);
+      expect(botones?.text).toContain("No reconocí ese número");
+    }
+    expect(calls).toHaveLength(0);
+  });
+
+  it("si la IA no entiende, se muestra el menú real en un solo mensaje con botones", async () => {
+    const { ai } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    const reply = await t.send("hshdkf");
+    expect(reply.rich).toHaveLength(1);
+    expect(buttonsOf(reply)?.text).toContain("No entendí tu mensaje");
+    expect(reply.messages.join("\n")).not.toContain("NO_ENTENDI");
+  });
+
+  it("también desde Carga de Documentación vuelve al menú", async () => {
+    const { ai } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    await t.send("1");
+    const reply = await t.send("hshdkf");
+    expect(buttonsOf(reply)?.buttons).toHaveLength(3);
+    const despues = await t.send("2");
+    expect(despues.messages[0]).toContain("DNI del chofer");
+  });
+
+  it("una consulta entendible sigue yendo a la IA", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    const reply = await t.send("que pongo en el campo dni");
+    expect(reply.messages[0]).toBe("IA: que pongo en el campo dni");
+    expect(calls).toHaveLength(1);
   });
 });

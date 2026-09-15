@@ -41,8 +41,7 @@ export const camionQaHandler: StateHandler = {
     if (!data) {
       return { messages: [PEDIR_DOMINIO], nextState: BotState.CAMION_DOMINIO, skipEnter: true };
     }
-    const messages = await answerWithAi(ctx, "camion", data);
-    return { messages };
+    return answerWithAi(ctx, "camion", data);
   },
 };
 

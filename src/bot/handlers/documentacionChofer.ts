@@ -41,8 +41,7 @@ export const choferQaHandler: StateHandler = {
     if (!data) {
       return { messages: [PEDIR_DNI], nextState: BotState.CHOFER_DNI, skipEnter: true };
     }
-    const messages = await answerWithAi(ctx, "chofer", data);
-    return { messages };
+    return answerWithAi(ctx, "chofer", data);
   },
 };
 

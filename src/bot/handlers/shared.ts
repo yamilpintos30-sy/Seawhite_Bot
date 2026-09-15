@@ -4,7 +4,8 @@ import type { AiMode } from "../../ai/types.js";
 import { formatIso, todayInTimeZone } from "../../utils/dates.js";
 import { dailyLimits } from "../../utils/rateLimiter.js";
 import { toWhatsAppFormat } from "../../utils/text.js";
-import type { HandlerContext } from "../types.js";
+import { startState } from "../menus.js";
+import type { HandlerContext, HandlerResult } from "../types.js";
 
 export const LIMITE_DIARIO_IA =
   "Llegamos al límite de consultas por hoy para este chat 😅. Mañana podemos seguir. Si tu consulta es urgente, comunicate directamente con SEA WHITE.";
@@ -24,24 +25,43 @@ export function withinLookupLimit(ctx: HandlerContext): boolean {
   return ok;
 }
 
+export const NOT_UNDERSTOOD_MESSAGE = "No entendí tu mensaje 🤔. Elegí una opción, o escribime tu consulta con tus palabras 👇";
+
+export const NUMBER_NOT_UNDERSTOOD_MESSAGE =
+  "No reconocí ese número 🤔. Si es un DNI, escribilo completo: 7 u 8 números, sin puntos. Si no, elegí una opción 👇";
+
+/** Lo que responde la IA cuando el mensaje es ininteligible (ver regla en prompts.ts). */
+const NOT_UNDERSTOOD_MARKER = /\[\[\s*NO_ENTENDI\s*\]\]/;
+
+/** Mensaje no entendido: se muestra el menú real con botones, nunca uno escrito por la IA. */
+function notUnderstood(text: string): HandlerResult {
+  return { messages: [text], nextState: startState() };
+}
+
 /**
  * Llama a la IA con el mensaje actual, mantiene el historial corto de la sesión
- * y devuelve las respuestas ya formateadas para WhatsApp.
+ * y devuelve la respuesta ya formateada para WhatsApp.
  */
-export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Record<string, unknown>): Promise<string[]> {
+export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Record<string, unknown>): Promise<HandlerResult> {
   const { session, message, services } = ctx;
-
-  // Límite diario de respuestas con IA por conversación (anti-abuso).
-  if (!dailyLimits.hit(`ai:${session.conversationId}`, services.config.DAILY_AI_LIMIT, dayKey(ctx))) {
-    services.logger.warn({ conversationId: session.conversationId }, "Límite diario de IA alcanzado");
-    return [LIMITE_DIARIO_IA];
-  }
 
   // Las fotos y archivos se IGNORAN por completo (decisión del equipo): la IA
   // nunca los recibe. Un mensaje sin texto no tiene nada que responder acá
   // (el motor intercepta antes los mensajes de adjunto solo).
   if (!message.text.trim()) {
-    return ["Contame por escrito tu consulta y te ayudo."];
+    return { messages: ["Contame por escrito tu consulta y te ayudo."] };
+  }
+
+  // Sin una sola letra ("123", "123456", "?!"): no es una consulta ni vale una
+  // llamada a la IA (que respondía algo genérico que parecía la opción 1).
+  if (!/\p{L}/u.test(message.text)) {
+    return notUnderstood(/\d/.test(message.text) ? NUMBER_NOT_UNDERSTOOD_MESSAGE : NOT_UNDERSTOOD_MESSAGE);
+  }
+
+  // Límite diario de respuestas con IA por conversación (anti-abuso).
+  if (!dailyLimits.hit(`ai:${session.conversationId}`, services.config.DAILY_AI_LIMIT, dayKey(ctx))) {
+    services.logger.warn({ conversationId: session.conversationId }, "Límite diario de IA alcanzado");
+    return { messages: [LIMITE_DIARIO_IA] };
   }
 
   // Recorte defensivo de mensajes larguísimos (pegadas de texto, spam).
@@ -55,17 +75,22 @@ export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Rec
       data,
     });
 
+    if (NOT_UNDERSTOOD_MARKER.test(result.text)) {
+      services.logger.info({ conversationId: session.conversationId, mode }, "Mensaje no entendido por la IA; se muestra el menú");
+      return notUnderstood(NOT_UNDERSTOOD_MESSAGE);
+    }
+
     pushHistory(ctx, "user", message.text.trim());
     pushHistory(ctx, "assistant", result.text);
 
     if (result.usage) {
       services.logger.info({ conversationId: session.conversationId, mode, usage: result.usage }, "Consulta respondida con IA");
     }
-    return [toWhatsAppFormat(result.text)];
+    return { messages: [toWhatsAppFormat(result.text)] };
   } catch (err) {
     if (err instanceof AiUnavailableError) {
       services.logger.error({ err: err.message, conversationId: session.conversationId }, "IA no disponible");
-      return [err.userMessage];
+      return { messages: [err.userMessage] };
     }
     throw err;
   }

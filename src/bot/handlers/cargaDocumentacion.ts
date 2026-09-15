@@ -23,7 +23,6 @@ export const cargaDocumentacionHandler: StateHandler = {
   },
 
   async handle(ctx: HandlerContext): Promise<HandlerResult> {
-    const messages = await answerWithAi(ctx, "carga");
-    return { messages };
+    return answerWithAi(ctx, "carga");
   },
 };

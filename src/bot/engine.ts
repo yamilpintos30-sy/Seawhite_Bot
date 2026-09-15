@@ -34,7 +34,8 @@ const MENU_OF_STATE: Partial<Record<BotStateName, Menu>> = {
 };
 
 /** Cuerpo corto del mensaje con botones (los botones ya dicen qué hace cada uno). */
-const BUTTONS_BODY = "¿Qué necesitás? Tocá una opción 👇\n\n_La carga de documentación se hace en la página web; acá resuelvo dudas y consulto vencimientos al instante._";
+const BUTTONS_NOTE = "_La carga de documentación se hace en la página web; acá resuelvo dudas y consulto vencimientos al instante._";
+const BUTTONS_BODY = `¿Qué necesitás? Tocá una opción 👇\n\n${BUTTONS_NOTE}`;
 
 const HANDOFF_MESSAGE = "Perfecto, le paso tu consulta a una persona del equipo de SEA WHITE para que te responda por acá. 🙌";
 const AUTOMATIC_ONLY_MESSAGE =
@@ -269,9 +270,9 @@ export class BotEngine {
       return this.transition(session, message, result.nextState, result.messages);
     }
     if (result.nextState === session.state && !result.skipEnter) {
-      // Mismo estado pero pidieron re-entrar (por ejemplo, volver a mostrar el menú).
-      const entry = await handler.enter(ctx);
-      return { messages: [...result.messages, ...entry], handoff: result.handoff };
+      // Mismo estado pero pidieron re-entrar (por ejemplo, volver a mostrar el
+      // menú tras un mensaje no entendido): con transition salen los botones.
+      return this.transition(session, message, result.nextState, result.messages);
     }
     return { messages: result.messages, handoff: result.handoff };
   }
@@ -290,6 +291,12 @@ export class BotEngine {
     const menu = MENU_OF_STATE[nextState];
     const buttons = menu ? menuButtons(menu) : [];
     if (buttons.length > 0) {
+      // Un aviso corto ("No entendí...", "No proceso fotos...") va en el MISMO
+      // mensaje que los botones; uno largo, en su propio mensaje antes.
+      const intro = before.join("\n\n");
+      if (intro && intro.length + BUTTONS_NOTE.length <= 1000) {
+        return { messages, rich: [{ kind: "buttons", text: `${intro}\n\n${BUTTONS_NOTE}`, buttons }] };
+      }
       const rich: RichOutbound[] = before.map((text) => ({ kind: "text", text }));
       rich.push({ kind: "buttons", text: BUTTONS_BODY, buttons });
       return { messages, rich };

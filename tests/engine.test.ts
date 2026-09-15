@@ -80,11 +80,10 @@ describe("BotEngine — menús", () => {
     expect(text).toContain("con su patente");
   });
 
-  it("en el menú, lo que no es una opción lo responde la IA (nada de 'No entendí')", async () => {
+  it("en el menú, una consulta que no es una opción la responde la IA", async () => {
     await t.send("hola");
-    const reply = await t.send("12345");
-    expect(reply.messages[0]).toContain("IA(carga): 12345");
-    expect(reply.messages.join("\n")).not.toContain("No entendí");
+    const reply = await t.send("me rechazaron la art");
+    expect(reply.messages[0]).toContain("IA(carga): me rechazaron la art");
   });
 
   it("una foto sola se ignora por completo: aviso fijo + menú real (sin IA)", async () => {
