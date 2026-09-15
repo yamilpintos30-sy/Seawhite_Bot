@@ -5,7 +5,7 @@
  */
 import { SeaLinkError } from "../../integrations/sealink/types.js";
 import { clasificarVencimiento, lineaVencimiento, resumenGeneral, vencimientosParaIA } from "../../domain/vencimientos.js";
-import { looksLikePatente, normalizePatente } from "../../domain/validators.js";
+import { findPatenteInText, looksLikePatente, normalizePatente } from "../../domain/validators.js";
 import { todayInTimeZone } from "../../utils/dates.js";
 import { BotState, type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
 import { answerWithAi, LIMITE_DIARIO_CONSULTAS, withinLookupLimit } from "./shared.js";
@@ -34,7 +34,8 @@ export const camionQaHandler: StateHandler = {
   },
 
   async handle(ctx: HandlerContext): Promise<HandlerResult> {
-    if (looksLikePatente(ctx.message.text)) {
+    // Otra patente, sola o dentro de una frase: se consulta directo.
+    if (looksLikePatente(ctx.message.text) || findPatenteInText(ctx.message.text)) {
       return consultarCamion(ctx);
     }
     const data = ctx.session.context.camion;
@@ -49,7 +50,7 @@ export const camionQaHandler: StateHandler = {
 
 async function consultarCamion(ctx: HandlerContext): Promise<HandlerResult> {
   const { message, services, session } = ctx;
-  const patente = normalizePatente(message.text);
+  const patente = normalizePatente(findPatenteInText(message.text) ?? message.text);
   if (!patente.ok) {
     return { messages: [patente.error!] };
   }
@@ -70,7 +71,7 @@ async function consultarCamion(ctx: HandlerContext): Promise<HandlerResult> {
 
   if (!lookup.found) {
     return {
-      messages: [`No encontré ningún camión o acoplado con la patente *${patente.value}*. Revisá que esté bien escrita y volvé a intentarlo, o escribí *volver* para ir al menú.`],
+      messages: [`No encontré ningún camión o acoplado con la patente *${patente.value}*. Revisá que esté bien escrita y volvé a intentarlo, o tocá el botón *Menú* acá abajo.`],
     };
   }
 

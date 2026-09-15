@@ -2,7 +2,8 @@
  * Handlers de los menús (principal y BALANZA). Son genéricos: cualquier menú definido
  * en `menus.ts` se maneja con `createMenuHandler`.
  */
-import { looksLikeDni, looksLikePatente } from "../../domain/validators.js";
+import { findDniInText, findPatenteInText, looksLikeDni, looksLikePatente } from "../../domain/validators.js";
+import { normalizeText } from "../../utils/text.js";
 import { matchOption, renderMenu, BALANZA_MENU, MAIN_MENU, type Menu } from "../menus.js";
 import { BotState, type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
 import { camionDominioHandler } from "./documentacionCamion.js";
@@ -30,11 +31,14 @@ export function createMenuHandler(menu: Menu): StateHandler {
       if (!option) {
         // Un DNI o una patente escritos directo en el menú: consultar de una,
         // sin obligar a elegir la opción primero.
-        if (looksLikeDni(ctx.message.text)) {
+        // Dentro de una frase sólo si la frase habla de chofer o de vehículo:
+        // "mi póliza 12345678 fue rechazada" es una consulta, no un DNI.
+        const text = normalizeText(ctx.message.text);
+        if (looksLikeDni(ctx.message.text) || (/\b(dni|chofer|choferes|documento)\b/.test(text) && findDniInText(ctx.message.text))) {
           ctx.session.state = BotState.CHOFER_DNI;
           return choferDniHandler.handle(ctx);
         }
-        if (looksLikePatente(ctx.message.text)) {
+        if (looksLikePatente(ctx.message.text) || (/\b(patente|dominio|camion|acoplado|semi|vehiculo)\b/.test(text) && findPatenteInText(ctx.message.text))) {
           ctx.session.state = BotState.CAMION_DOMINIO;
           return camionDominioHandler.handle(ctx);
         }

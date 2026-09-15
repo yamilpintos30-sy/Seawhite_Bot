@@ -37,13 +37,13 @@ export const MODE_INSTRUCTIONS: Record<AiMode, string> = {
 - Respondé preguntas sobre esos datos usando SOLO esa información. No supongas datos que no estén.
 - "SIN_FECHA" significa que el sistema no tiene la fecha cargada: decilo así, no digas que está vencido ni vigente.
 - Si preguntan cómo renovar o cargar algo, usá la base de conocimiento.
-- Si preguntan por otro chofer, indicá que escriba el nuevo DNI.`,
+- Si preguntan por otro chofer, pedile que escriba el DNI acá mismo, en este chat (no hace falta pasar por el menú).`,
 
   camion: `MODO ACTUAL: "Documentación de Camión o Acoplado". El usuario ya consultó un dominio (patente) y a continuación tenés los datos EXACTOS devueltos por el sistema SeaLink, con el estado ya calculado (VIGENTE / POR_VENCER / VENCIDO / SIN_FECHA) tomando como referencia la fecha de hoy.
 - Respondé preguntas sobre esos datos usando SOLO esa información. No supongas datos que no estén.
 - "SIN_FECHA" significa que el sistema no tiene la fecha cargada: decilo así, no digas que está vencido ni vigente.
 - Si preguntan cómo renovar o cargar algo, usá la base de conocimiento.
-- Si preguntan por otro vehículo, indicá que escriba la nueva patente.`,
+- Si preguntan por otro vehículo, pedile que escriba la patente acá mismo, en este chat (no hace falta pasar por el menú).`,
 };
 
 export interface DynamicContextInput {

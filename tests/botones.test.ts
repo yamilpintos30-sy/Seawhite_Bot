@@ -136,6 +136,28 @@ describe("mensajes no entendidos", () => {
     expect(despues.messages[0]).toContain("DNI del chofer");
   });
 
+  it("en la consulta de chofer, un DNI dentro de una frase se consulta directo (sin IA)", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    await t.send("Chofer por DNI");
+    await t.send("35413889");
+    const reply = await t.send("Si quiero revisar también 28885090");
+    expect(reply.messages[0]).toContain("GOMEZ CARLOS");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("en el menú, 'el dni del chofer es X' consulta directo, pero una póliza no", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    const chofer = await t.send("el dni del chofer es 35.413.889");
+    expect(chofer.messages[0]).toContain("PEREZ JUAN");
+    await t.send("menu");
+    await t.send("mi poliza 12345678 fue rechazada");
+    expect(calls).toHaveLength(1);
+  });
+
   it("una consulta entendible sigue yendo a la IA", async () => {
     const { ai, calls } = trackedAi();
     const t = setup(ai);

@@ -27,6 +27,26 @@ export function normalizeDni(input: string): ValidationResult {
   return { ok: true, value: digits };
 }
 
+/**
+ * DNI escrito dentro de una frase ("quiero revisar también 92791217", "el 30.123.456").
+ * Devuelve los dígitos sólo si hay UN único número de 7 u 8 cifras; no toma
+ * partes de números más largos ni de CUIT/CUIL con guiones.
+ */
+export function findDniInText(input: string): string | undefined {
+  const found = new Set((input.match(/(?<![\d.\-])\d{1,2}\.?\d{3}\.?\d{3}(?!\d|[.\-]\d)/g) ?? []).map((m) => m.replace(/\D/g, "")));
+  return found.size === 1 ? [...found][0] : undefined;
+}
+
+/**
+ * Patente escrita dentro de una frase ("y la del acoplado AB 123 CD?"). Sólo
+ * formatos reales (AA123BB, ABC123, 1234ABC) y sólo si hay UNA en el texto.
+ */
+export function findPatenteInText(input: string): string | undefined {
+  const pattern = /(?<![A-Z0-9])([A-Z]{2}[\s-]?\d{3}[\s-]?[A-Z]{2}|[A-Z]{3}[\s-]?\d{3}|\d{3,4}[\s-]?[A-Z]{3})(?![A-Z0-9])/g;
+  const found = new Set((input.toUpperCase().match(pattern) ?? []).map((m) => m.replace(/[\s-]/g, "")));
+  return found.size === 1 ? [...found][0] : undefined;
+}
+
 /** ¿El texto parece ser un DNI y nada más? (para detectar re-consultas dentro del modo chofer). */
 export function looksLikeDni(input: string): boolean {
   const cleaned = input.replace(/[\s.]/g, "").replace(/^dni:?/i, "");

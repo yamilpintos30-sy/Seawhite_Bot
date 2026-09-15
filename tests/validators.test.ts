@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { looksLikeDni, looksLikePatente, normalizeDni, normalizePatente } from "../src/domain/validators.js";
+import { findDniInText, findPatenteInText, looksLikeDni, looksLikePatente, normalizeDni, normalizePatente } from "../src/domain/validators.js";
 
 describe("normalizeDni", () => {
   it("acepta DNI con puntos y lo devuelve sólo con números", () => {
@@ -39,5 +39,28 @@ describe("normalizePatente", () => {
     expect(looksLikePatente("AA006QS")).toBe(true);
     expect(looksLikePatente("3437BXL")).toBe(true);
     expect(looksLikePatente("cuando vence el seguro")).toBe(false);
+  });
+
+  it("findDniInText encuentra un DNI dentro de una frase", () => {
+    expect(findDniInText("Si quiero revisar también 92791217")).toBe("92791217");
+    expect(findDniInText("y el de 30.123.456?")).toBe("30123456");
+    expect(findDniInText("dni 1234567.")).toBe("1234567");
+  });
+
+  it("findDniInText no inventa DNI", () => {
+    expect(findDniInText("el cuit es 20-39079734-5")).toBeUndefined();
+    expect(findDniInText("numero 123456789")).toBeUndefined();
+    expect(findDniInText("vence el 25/08/2026")).toBeUndefined();
+    expect(findDniInText("formulario 931")).toBeUndefined();
+    expect(findDniInText("30123456 y 28885090")).toBeUndefined(); // dos DNI: ambiguo
+  });
+
+  it("findPatenteInText encuentra patentes reales dentro de una frase", () => {
+    expect(findPatenteInText("y la del acoplado AB 123 CD?")).toBe("AB123CD");
+    expect(findPatenteInText("revisame aa006qs")).toBe("AA006QS");
+    expect(findPatenteInText("el camion ABC-123")).toBe("ABC123");
+    expect(findPatenteInText("patente 3437BXL por favor")).toBe("3437BXL");
+    expect(findPatenteInText("cuando vence el seguro")).toBeUndefined();
+    expect(findPatenteInText("formulario F931 en PDF2024")).toBeUndefined();
   });
 });
