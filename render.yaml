@@ -66,9 +66,9 @@ services:
       - key: FOLLOWUP_ASK_MINUTES
         value: "5"
       - key: FOLLOWUP_BYE_MINUTES
-        value: "10"
+        value: "30"
       - key: FOLLOWUP_RESET_MINUTES
-        value: "15"
+        value: "35"
 
       # --- SeaLink (SOLO LECTURA) ---
       - key: SEALINK_BASE_URL
