@@ -3,7 +3,7 @@ import { AiUnavailableError } from "../../ai/claudeService.js";
 import type { AiMode } from "../../ai/types.js";
 import { formatIso, todayInTimeZone } from "../../utils/dates.js";
 import { dailyLimits } from "../../utils/rateLimiter.js";
-import { toWhatsAppFormat } from "../../utils/text.js";
+import { removeColloquialisms, toWhatsAppFormat } from "../../utils/text.js";
 import { startState } from "../menus.js";
 import type { HandlerContext, HandlerResult } from "../types.js";
 
@@ -88,7 +88,7 @@ export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Rec
     if (result.usage) {
       services.logger.info({ conversationId: session.conversationId, mode, usage: result.usage }, "Consulta respondida con IA");
     }
-    return { messages: [toWhatsAppFormat(result.text)] };
+    return { messages: [toWhatsAppFormat(removeColloquialisms(result.text))] };
   } catch (err) {
     if (err instanceof AiUnavailableError) {
       services.logger.error({ err: err.message, conversationId: session.conversationId }, "IA no disponible");
