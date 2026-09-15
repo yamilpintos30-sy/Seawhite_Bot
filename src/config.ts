@@ -99,12 +99,12 @@ const schema = z.object({
    * responden al instante. 0 = sin buffer.
    */
   DEBOUNCE_SECONDS: z.coerce.number().int().min(0).default(7),
-  /** Minutos tras la última respuesta para preguntar "¿necesitás algo más?". 0 = off. */
-  FOLLOWUP_ASK_MINUTES: z.coerce.number().min(0).default(3),
-  /** Minutos para la despedida ("espero haberte sido útil..."). 0 = off. */
-  FOLLOWUP_BYE_MINUTES: z.coerce.number().min(0).default(6),
-  /** Minutos para resetear la conversación (el próximo mensaje arranca de cero). 0 = off. */
-  FOLLOWUP_RESET_MINUTES: z.coerce.number().min(0).default(9),
+  /** Minutos desde el último mensaje del cliente para preguntar "¿necesitás algo más?". 0 = off. */
+  FOLLOWUP_ASK_MINUTES: z.coerce.number().min(0).default(5),
+  /** Minutos para la despedida, que además cierra la conversación. 0 = off. */
+  FOLLOWUP_BYE_MINUTES: z.coerce.number().min(0).default(10),
+  /** Respaldo: minutos para resetear la conversación si la despedida está apagada. 0 = off. */
+  FOLLOWUP_RESET_MINUTES: z.coerce.number().min(0).default(15),
 
   // --- Sesiones ---
   /** Minutos de inactividad tras los cuales la conversación vuelve al menú principal. */

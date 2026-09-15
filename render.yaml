@@ -64,11 +64,11 @@ services:
       - key: DEBOUNCE_SECONDS
         value: "7"
       - key: FOLLOWUP_ASK_MINUTES
-        value: "3"
+        value: "5"
       - key: FOLLOWUP_BYE_MINUTES
-        value: "6"
+        value: "10"
       - key: FOLLOWUP_RESET_MINUTES
-        value: "9"
+        value: "15"
 
       # --- SeaLink (SOLO LECTURA) ---
       - key: SEALINK_BASE_URL
