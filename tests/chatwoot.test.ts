@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseChatwootWebhook } from "../src/channels/chatwoot/parseWebhook.js";
 import { matchOption, MAIN_MENU, BALANZA_MENU } from "../src/bot/menus.js";
 import { detectGlobalCommand } from "../src/bot/commands.js";
-import { removeColloquialisms, splitForButtons, splitForWhatsApp, toWhatsAppFormat } from "../src/utils/text.js";
+import { splitForButtons, splitForWhatsApp, toWhatsAppFormat } from "../src/utils/text.js";
 
 describe("parseChatwootWebhook", () => {
   const base = {
@@ -138,14 +138,6 @@ describe("formato WhatsApp", () => {
     expect(parts.length).toBeGreaterThan(1);
     expect(parts.every((p) => p.length <= 1000)).toBe(true);
     expect(parts.join("\n\n")).toBe(long);
-  });
-
-  it("borra 'che' y un 'Dale,' inicial sin romper el texto", () => {
-    expect(removeColloquialisms("Entiendo, che. No tengo forma de verlo.")).toBe("Entiendo. No tengo forma de verlo.");
-    expect(removeColloquialisms("Che, fijate el campo.")).toBe("Fijate el campo.");
-    expect(removeColloquialisms("Hola. Che mirá esto")).toBe("Hola. Mirá esto");
-    expect(removeColloquialisms("Dale, para consultar el DNI tocá Menú.")).toBe("Para consultar el DNI tocá Menú.");
-    expect(removeColloquialisms("El coche y la noche, chequeá la póliza.")).toBe("El coche y la noche, chequeá la póliza.");
   });
 
   it("un texto corto va entero con los botones", () => {

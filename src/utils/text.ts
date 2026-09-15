@@ -32,17 +32,6 @@ export function toWhatsAppFormat(text: string): string {
     .trim();
 }
 
-/**
- * Red de seguridad del tono: borra "che" y un "Dale," inicial si la IA los usa
- * pese a la prohibición del prompt (visto en producción: "Entiendo, che.").
- */
-export function removeColloquialisms(text: string): string {
-  return text
-    .replace(/,\s*che\b(?=\s*[.,!?:;]|\s*$)/gim, "")
-    .replace(/(^|[.!?]\s+|\n)che,?\s+(\p{L})/gimu, (_m, pre: string, letter: string) => `${pre}${letter.toUpperCase()}`)
-    .replace(/(^|\n)dale[,!.]\s+(\p{L})/gimu, (_m, pre: string, letter: string) => `${pre}${letter.toUpperCase()}`);
-}
-
 /** WhatsApp limita cada mensaje a 4096 caracteres; partimos por párrafos si hace falta. */
 export function splitForWhatsApp(text: string, maxLength = 4000): string[] {
   if (text.length <= maxLength) return [text];
