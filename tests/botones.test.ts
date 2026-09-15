@@ -158,6 +158,41 @@ describe("mensajes no entendidos", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("si el PRIMER mensaje trae una consulta, el saludo va con la respuesta (no se ignora)", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    const reply = await t.send("Ingreso el número de teléfono y no me lo yoma\nToma");
+    expect(reply.rich![0]).toMatchObject({ kind: "image" });
+    expect(reply.rich![reply.rich!.length - 1]).toMatchObject({ kind: "text" });
+    expect(reply.messages.join("\n")).toContain("IA: Ingreso el número de teléfono");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("un saludo con charla ('hola buen día, cómo estás?') recibe saludo + menú, sin IA", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    const reply = await t.send("Hola buen día, cómo estás?");
+    expect(reply.rich![0]).toMatchObject({ kind: "image" });
+    expect(buttonsOf(reply)?.buttons).toHaveLength(3);
+    expect(calls).toHaveLength(0);
+  });
+
+  it("un primer mensaje ininteligible recibe el saludo normal con el menú (sin 'No entendí')", async () => {
+    const { ai } = trackedAi();
+    const t = setup(ai);
+    const reply = await t.send("hshdkf");
+    expect(reply.rich![0]).toMatchObject({ kind: "image" });
+    expect(buttonsOf(reply)?.text).toContain("¿Qué necesitás?");
+    expect(reply.messages.join("\n")).not.toContain("No entendí");
+  });
+
+  it("un DNI como primer mensaje se consulta junto con el saludo", async () => {
+    const t = setup();
+    const reply = await t.send("35413889");
+    expect(reply.rich![0]).toMatchObject({ kind: "image" });
+    expect(reply.messages.join("\n")).toContain("PEREZ JUAN");
+  });
+
   it("una consulta entendible sigue yendo a la IA", async () => {
     const { ai, calls } = trackedAi();
     const t = setup(ai);

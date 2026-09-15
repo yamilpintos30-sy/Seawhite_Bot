@@ -29,7 +29,7 @@ Implementa el flujo de `Esquema_Bot_IA.pdf`, afinado con las pruebas reales de p
 **Reglas de conversación** (decisiones del equipo, ver historial de commits):
 - Cada respuesta cierra con dos botones: **[Menú 😊] [Eso es todo, gracias]** (estilo Banco Provincia). "Eso es todo" despide y cierra la conversación.
 - **Fotos y archivos se ignoran por completo**: nunca se piden, nunca se procesan; una foto sola recibe un aviso fijo + el menú. La IA tiene prohibido pedirlas.
-- **Buffer de mensajes** (`DEBOUNCE_SECONDS`, 7 s): junta lo que la persona escribe y responde una vez. Botones, opciones, saludos, DNI y patentes responden al instante; el primer mensaje de una conversación nunca espera.
+- **Buffer de mensajes** (`DEBOUNCE_SECONDS`, 7 s): junta lo que la persona escribe y responde una vez. Botones, opciones, saludos, DNI y patentes responden al instante. El primer mensaje también espera (salvo un saludo): si trae una consulta, el saludo sale junto con su respuesta.
 - **Seguimientos desde el último mensaje del cliente**: 3 min "¿necesitás algo más?" (con botones), 6 min despedida + cierre, 9 min respaldo de reseteo.
 - Un DNI o patente escritos en el menú **consultan directamente**; cualquier otra cosa que no sea una opción la responde la IA (nunca "no entendí").
 - 100 % automático (`HANDOFF_ENABLED=false`): ante "quiero hablar con alguien" explica que la atención es automática. Si un humano del equipo escribe desde Chatwoot (con SU usuario, no el del token), el bot se aparta solo.

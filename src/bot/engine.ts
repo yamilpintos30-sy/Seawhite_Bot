@@ -4,7 +4,8 @@
  * Flujo por cada mensaje entrante:
  *   1. Cargar la sesión (o crear una: conversación nueva o expirada por TTL).
  *   2. Conversación nueva -> saludo (identifica al chofer por teléfono en
- *      SeaLink para el nombre) + imagen + menú con botones.
+ *      SeaLink para el nombre) + imagen + menú con botones; si el primer
+ *      mensaje ya traía una consulta, el saludo va con su respuesta.
  *   3. Si una persona tomó la conversación -> silencio (el cliente puede
  *      despertar al bot con "/bot").
  *   4. Foto/archivo sin texto -> aviso fijo + menú (las fotos se IGNORAN,
@@ -21,10 +22,11 @@
 import type { MessageLog } from "../storage/messageLog.js";
 import type { SessionStore } from "../storage/sessionStore.js";
 import { nombreCompleto } from "../utils/names.js";
-import { detectGlobalCommand, helpText } from "./commands.js";
+import { normalizeText } from "../utils/text.js";
+import { detectGlobalCommand, helpText, isGreetingOnly } from "./commands.js";
 import { getHandler, PARENT_STATE } from "./handlers/index.js";
 import { welcomeLine } from "./handlers/menuHandlers.js";
-import { BALANZA_MENU, MAIN_MENU, matchOption, menuButtons, startState, type Menu } from "./menus.js";
+import { BALANZA_MENU, MAIN_MENU, menuButtons, startState, type Menu } from "./menus.js";
 import { BotState, type BotReply, type BotServices, type BotStateName, type IncomingMessage, type RichOutbound, type Session } from "./types.js";
 
 /** Menú correspondiente a un estado, si el estado es un menú. */
@@ -81,14 +83,6 @@ export class BotEngine {
   /** Olvida la sesión (por ejemplo, cuando la conversación se resuelve en Chatwoot). */
   async reset(conversationId: string): Promise<void> {
     await this.deps.sessions.delete(conversationId);
-  }
-
-  /**
-   * ¿Esta conversación ya tiene sesión? El canal lo usa para saltear el buffer
-   * en el PRIMER mensaje: el saludo tiene que salir al instante, no 7 s después.
-   */
-  async isKnownConversation(conversationId: string): Promise<boolean> {
-    return (await this.safeGetSession(conversationId)) !== null;
   }
 
   /** Marca la conversación como tomada por una persona. */
@@ -200,18 +194,24 @@ export class BotEngine {
     const ctx = { session, message, services: this.deps.services };
     const greeting = welcomeLine(this.deps.services.config.BOT_NAME, session.contact?.displayName);
 
-    // Si el primer mensaje ya es una opción válida del menú inicial ("2", "chofer"),
-    // la respetamos. Se chequea con matchOption directamente (NO con handler.handle:
-    // desde que el menú responde con IA lo que no es opción, eso dispararía una
-    // llamada a Claude al pedo en cada saludo).
-    const startMenu = MENU_OF_STATE[start];
-    const chosen = startMenu ? matchOption(startMenu, message.text) : undefined;
-    if (chosen?.target && chosen.target !== start) {
-      const reply = await this.transition(session, message, chosen.target);
-      return {
-        messages: [greeting, ...reply.messages],
-        rich: [{ kind: "image", caption: greeting }, ...(reply.rich ?? reply.messages.map((text) => ({ kind: "text" as const, text })))],
-      };
+    // Si el primer mensaje ya trae algo concreto (una opción, un DNI, una consulta
+    // como "ingreso el teléfono y no me lo toma"), se responde JUNTO con el saludo:
+    // antes se ignoraba y el cliente tenía que volver a escribirlo. Un saludo
+    // solo, una o dos letras sueltas ("ok", "A"), o algo que no se entiende,
+    // recibe el saludo con el menú.
+    const firstText = normalizeText(message.text);
+    if (firstText && (firstText.length > 2 || /\d/.test(firstText)) && !isGreetingOnly(message.text)) {
+      const reply = await this.dispatch(session, message);
+      if (reply.reset) return reply;
+      const volvioAlMenu = session.state === start && reply.rich?.some((r) => r.kind === "buttons");
+      if (!volvioAlMenu) {
+        return {
+          ...reply,
+          messages: [greeting, ...reply.messages],
+          rich: [{ kind: "image", caption: greeting }, ...(reply.rich ?? reply.messages.map((text) => ({ kind: "text" as const, text })))],
+        };
+      }
+      session.state = start;
     }
 
     const entry = await getHandler(start).enter(ctx);

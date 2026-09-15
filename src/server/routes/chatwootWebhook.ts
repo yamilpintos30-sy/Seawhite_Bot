@@ -77,11 +77,6 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
     void enqueueHandle(merged);
   });
 
-  // Conversaciones cuyo SALUDO está en curso: los mensajes que lleguen en el
-  // medio van al buffer (se juntan y se responden una sola vez), en vez de
-  // tratarse cada uno como "primer mensaje" y disparar llamadas a la IA sueltas.
-  const greetingInFlight = new Set<string>();
-
   // En un apagado (deploy), los mensajes que estaban juntándose se procesan YA:
   // sin esto, una consulta a mitad del buffer quedaba sin responder para siempre.
   const flushOnShutdown = () => {
@@ -157,19 +152,11 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
     }
 
     // El usuario escribió: se cancelan los seguimientos pendientes y el mensaje
-    // entra al buffer (o se procesa al instante si es botón/comando/DNI/patente).
-    // El PRIMER mensaje de una conversación nunca espera: el saludo sale ya.
-    // Los mensajes que lleguen MIENTRAS el saludo está en curso van al buffer.
+    // entra al buffer (o se procesa al instante si es saludo/botón/comando/DNI/
+    // patente). El primer mensaje también espera: "Ingreso el teléfono y no me
+    // lo yoma" + "Toma" tienen que llegar juntos, no como dos consultas sueltas.
     followups.cancel(message.conversationId);
-    void (async () => {
-      const conversationId = message.conversationId;
-      if (!greetingInFlight.has(conversationId) && !(await engine.isKnownConversation(conversationId))) {
-        greetingInFlight.add(conversationId);
-        await enqueueHandle(message).finally(() => greetingInFlight.delete(conversationId));
-        return;
-      }
-      debouncer.push(message);
-    })().catch((err) => logger.error({ err, conversationId: message.conversationId }, "Error procesando mensaje"));
+    debouncer.push(message);
   });
 
   async function handleMessage(message: Parameters<BotEngine["handle"]>[0]): Promise<void> {
@@ -195,25 +182,18 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
           }
         } else if (item.kind === "buttons") {
           await chatwoot.sendButtons(message.conversationId, item.text, item.buttons);
+        } else if (i === reply.rich.length - 1 && !reply.reset) {
+          // Texto final (p. ej. la respuesta que acompaña al saludo): con los botones de pie.
+          await sendWithFooter(message.conversationId, [item.text]);
         } else {
           await chatwoot.sendMessages(message.conversationId, splitForWhatsApp(item.text));
         }
       }
+    } else if (reply.reset) {
+      // La despedida va sin botones: la conversación terminó.
+      await chatwoot.sendMessages(message.conversationId, reply.messages.flatMap((m) => splitForWhatsApp(m)));
     } else {
-      // Cada respuesta cierra con los botones [ Menú 😊 ] [ Eso es todo, gracias ]
-      // (pedido del equipo, estilo Banco Provincia). El texto de un mensaje con
-      // botones tiene tope (1024): si el último tramo es más largo, se parte y
-      // los botones van con la parte final. La despedida (reset) va sin botones.
-      const parts = reply.messages.flatMap((m) => splitForWhatsApp(m)).filter((p) => p.trim());
-      if (!reply.reset && parts.length > 0) parts.push(...splitForButtons(parts.pop()!));
-      for (let i = 0; i < parts.length; i++) {
-        const isLast = i === parts.length - 1;
-        if (isLast && !reply.reset) {
-          await chatwoot.sendButtons(message.conversationId, parts[i]!, FOOTER_BUTTONS);
-        } else {
-          await chatwoot.sendMessage(message.conversationId, parts[i]!);
-        }
-      }
+      await sendWithFooter(message.conversationId, reply.messages);
     }
     await maybeHandoff(reply, message.conversationId);
     if (reply.reset) {
@@ -226,6 +206,22 @@ export function createChatwootWebhookRouter(deps: WebhookDeps): Router {
     // (los plazos descuentan lo que tardó la respuesta).
     if (!reply.handoff && (reply.messages.length > 0 || (reply.rich?.length ?? 0) > 0)) {
       followups.scheduleAfterReply(message.conversationId, clientMessageAt);
+    }
+  }
+
+  /**
+   * Cada respuesta cierra con los botones [ Menú 😊 ] [ Eso es todo, gracias ]
+   * (pedido del equipo, estilo Banco Provincia). El texto de un mensaje con
+   * botones tiene tope (1024): si el último tramo es más largo, se parte y los
+   * botones van con la parte final.
+   */
+  async function sendWithFooter(conversationId: string, messages: string[]): Promise<void> {
+    const parts = messages.flatMap((m) => splitForWhatsApp(m)).filter((p) => p.trim());
+    if (parts.length === 0) return;
+    parts.push(...splitForButtons(parts.pop()!));
+    for (let i = 0; i < parts.length; i++) {
+      if (i === parts.length - 1) await chatwoot.sendButtons(conversationId, parts[i]!, FOOTER_BUTTONS);
+      else await chatwoot.sendMessage(conversationId, parts[i]!);
     }
   }
 

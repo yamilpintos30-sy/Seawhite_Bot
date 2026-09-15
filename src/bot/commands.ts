@@ -46,6 +46,19 @@ export function detectGlobalCommand(input: string): GlobalCommand | undefined {
   return undefined;
 }
 
+/** Palabras de un saludo o cortesía sin consulta ("hola, buen día, cómo estás?"). */
+const GREETING_WORDS = new Set([
+  "hola", "holaa", "holis", "buen", "buena", "buenas", "buenos", "dia", "dias", "tarde", "tardes", "noche", "noches",
+  "como", "estas", "esta", "estan", "andas", "anda", "va", "que", "tal", "todo", "bien", "hey", "saludos", "gracias",
+  "enri", "sea", "white", "y", "tu", "vos", "usted",
+]);
+
+/** true si el mensaje es SOLO un saludo: se contesta con saludo + menú, sin IA. */
+export function isGreetingOnly(input: string): boolean {
+  const words = normalizeText(input).split(" ").filter(Boolean);
+  return words.length > 0 && words.every((w) => GREETING_WORDS.has(w));
+}
+
 export function helpText(handoffEnabled: boolean): string {
   return [
     "Podés navegar el asistente con estos atajos:",
