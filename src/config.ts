@@ -98,7 +98,7 @@ const schema = z.object({
    * en varios renglones). Botones, opciones de menú, comandos, DNI y patentes
    * responden al instante. 0 = sin buffer.
    */
-  DEBOUNCE_SECONDS: z.coerce.number().int().min(0).default(7),
+  DEBOUNCE_SECONDS: z.coerce.number().int().min(0).default(12),
   /** Minutos desde el último mensaje del cliente para preguntar "¿necesitás algo más?". 0 = off. */
   FOLLOWUP_ASK_MINUTES: z.coerce.number().min(0).default(5),
   /** Minutos para la despedida, que además cierra la conversación. 0 = off. */

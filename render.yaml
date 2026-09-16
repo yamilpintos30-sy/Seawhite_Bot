@@ -62,7 +62,7 @@ services:
 
       # --- Ritmo de conversación ---
       - key: DEBOUNCE_SECONDS
-        value: "7"
+        value: "12"
       - key: FOLLOWUP_ASK_MINUTES
         value: "5"
       - key: FOLLOWUP_BYE_MINUTES
