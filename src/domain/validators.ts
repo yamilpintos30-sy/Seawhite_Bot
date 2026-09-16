@@ -11,17 +11,41 @@ export interface ValidationResult {
   error?: string;
 }
 
-/** DNI: acepta "30.123.456", "30123456", "dni 30123456"; devuelve sólo dígitos (7 u 8). */
+/**
+ * DNI dentro de un CUIT/CUIL ("20-38925270-1" -> "38925270"). Se valida el
+ * dígito verificador para no confundir un CUIT con cualquier número de 11
+ * cifras (una póliza, un teléfono). Devuelve undefined si no es un CUIT.
+ */
+export function dniFromCuit(digits: string): string | undefined {
+  if (!/^(20|23|24|25|26|27|30|33|34)\d{9}$/.test(digits)) return undefined;
+  const pesos = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  const suma = pesos.reduce((acc, peso, i) => acc + peso * Number(digits[i]), 0);
+  const resto = suma % 11;
+  const verificador = resto === 0 ? 0 : resto === 1 ? 9 : 11 - resto;
+  if (verificador !== Number(digits[10])) return undefined;
+  return digits.slice(2, 10).replace(/^0+/, "");
+}
+
+/** DNI: acepta "30.123.456", "30123456", "dni 30123456" y también el CUIT/CUIL que lo contiene. */
 export function normalizeDni(input: string): ValidationResult {
   const digits = input.replace(/\D/g, "");
   if (digits.length === 0) {
     return { ok: false, value: "", error: "No encontré un número de DNI en el mensaje. Escribilo sólo con números, sin puntos. Ejemplo: 30123456" };
   }
+  if (digits.length === 11) {
+    const desdeCuit = dniFromCuit(digits);
+    if (desdeCuit) return { ok: true, value: desdeCuit };
+    return {
+      ok: false,
+      value: digits,
+      error: "Ese número de 11 cifras no es un CUIT/CUIL válido. Revisalo o mandame directamente el DNI (7 u 8 números, sin puntos). Ejemplo: 30123456",
+    };
+  }
   if (digits.length < 7 || digits.length > 8) {
     return {
       ok: false,
       value: digits,
-      error: "El DNI tiene que tener 7 u 8 números, sin puntos. Si escribiste un CUIT o CUIL, mandame sólo el DNI. Ejemplo: 30123456",
+      error: "El DNI tiene que tener 7 u 8 números, sin puntos. También podés mandarme el CUIT o CUIL completo. Ejemplo: 30123456",
     };
   }
   return { ok: true, value: digits };
@@ -33,6 +57,11 @@ export function normalizeDni(input: string): ValidationResult {
  * partes de números más largos ni de CUIT/CUIL con guiones.
  */
 export function findDniInText(input: string): string | undefined {
+  // Primero los CUIT/CUIL ("20-38925270-1"): contienen un DNI adentro.
+  const cuits = new Set(
+    ((input.match(/(?<!\d)\d{2}[\s.\-]?\d{8}[\s.\-]?\d(?!\d)/g) ?? []).map((m) => dniFromCuit(m.replace(/\D/g, ""))).filter(Boolean) as string[]),
+  );
+  if (cuits.size === 1) return [...cuits][0];
   const found = new Set((input.match(/(?<![\d.\-])\d{1,2}\.?\d{3}\.?\d{3}(?!\d|[.\-]\d)/g) ?? []).map((m) => m.replace(/\D/g, "")));
   return found.size === 1 ? [...found][0] : undefined;
 }
@@ -47,10 +76,11 @@ export function findPatenteInText(input: string): string | undefined {
   return found.size === 1 ? [...found][0] : undefined;
 }
 
-/** ¿El texto parece ser un DNI y nada más? (para detectar re-consultas dentro del modo chofer). */
+/** ¿El texto es un DNI (o el CUIT/CUIL que lo contiene) y nada más? */
 export function looksLikeDni(input: string): boolean {
-  const cleaned = input.replace(/[\s.]/g, "").replace(/^dni:?/i, "");
-  return /^\d{7,8}$/.test(cleaned);
+  const cleaned = input.replace(/[\s.\-]/g, "").replace(/^(dni|cuit|cuil):?/i, "");
+  if (/^\d{7,8}$/.test(cleaned)) return true;
+  return cleaned.length === 11 && dniFromCuit(cleaned) !== undefined;
 }
 
 /**

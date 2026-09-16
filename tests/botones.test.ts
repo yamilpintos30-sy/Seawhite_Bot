@@ -157,6 +157,15 @@ describe("mensajes no entendidos", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it("un CUIT/CUIL se consulta como el DNI que contiene", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    const reply = await t.send("27-35413889-7");
+    expect(reply.messages.join("\n")).toContain("PEREZ JUAN");
+    expect(calls).toHaveLength(0);
+  });
+
   it("en el menú, 'el dni del chofer es X' consulta directo, pero una póliza no", async () => {
     const { ai, calls } = trackedAi();
     const t = setup(ai);

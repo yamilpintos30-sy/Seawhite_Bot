@@ -10,7 +10,7 @@ import { todayInTimeZone } from "../../utils/dates.js";
 import { BotState, type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
 import { answerWithAi, LIMITE_DIARIO_CONSULTAS, withinLookupLimit } from "./shared.js";
 
-const PEDIR_DNI = "Escribí el *DNI del chofer* (sólo números, sin puntos). Ejemplo: 30123456";
+const PEDIR_DNI = "Escribí el *DNI del chofer* (sólo números, sin puntos). Ejemplo: 30123456\nTambién podés mandarme el CUIT o CUIL completo.";
 
 export const choferDniHandler: StateHandler = {
   state: BotState.CHOFER_DNI,

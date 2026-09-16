@@ -47,8 +47,21 @@ describe("normalizePatente", () => {
     expect(findDniInText("dni 1234567.")).toBe("1234567");
   });
 
+  it("toma el DNI de adentro de un CUIT/CUIL", () => {
+    expect(normalizeDni("20389252701")).toEqual({ ok: true, value: "38925270" });
+    expect(normalizeDni("cuil 27-35413889-7")).toEqual({ ok: true, value: "35413889" });
+    expect(looksLikeDni("20-38925270-1")).toBe(true);
+    expect(findDniInText("mi cuit es 20 38925270 1")).toBe("38925270");
+  });
+
+  it("un número de 11 cifras que no es CUIT no se toma como DNI", () => {
+    const r = normalizeDni("20389252709"); // verificador equivocado
+    expect(r.ok).toBe(false);
+    expect(r.error).toContain("no es un CUIT/CUIL válido");
+    expect(looksLikeDni("12345678901")).toBe(false);
+  });
+
   it("findDniInText no inventa DNI", () => {
-    expect(findDniInText("el cuit es 20-39079734-5")).toBeUndefined();
     expect(findDniInText("numero 123456789")).toBeUndefined();
     expect(findDniInText("vence el 25/08/2026")).toBeUndefined();
     expect(findDniInText("formulario 931")).toBeUndefined();
