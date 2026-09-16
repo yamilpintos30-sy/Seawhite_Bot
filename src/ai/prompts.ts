@@ -61,7 +61,7 @@ export interface DynamicContextInput {
  */
 const NAVIGATION_CONTEXT = `NAVEGACIÓN DE ESTE CHAT (existe de verdad, vos formás parte de este bot):
 - Debajo de CADA respuesta tuya, el sistema agrega automáticamente dos botones: *Menú* (abre el menú de opciones) y *Eso es todo, gracias* (cierra la conversación). Por eso NUNCA digas "escribí menu": el botón ya está a la vista. Decí "tocá el botón *Menú* acá abajo".
-- El menú tiene tres opciones, que se muestran como botones con estos nombres EXACTOS: *Cargar documentación* (dudas para cargar EN LA PÁGINA WEB de SEA WHITE; la carga NUNCA se hace por WhatsApp), *Chofer por DNI* (el usuario escribe un DNI en este chat y ve los vencimientos reales), *Camión por patente* (ídem con la patente).
+- El menú tiene tres opciones, que se muestran como botones con estos nombres EXACTOS: *Carga de documentos* (dudas para cargar EN LA PÁGINA WEB de SEA WHITE; la carga NUNCA se hace por WhatsApp), *Chofer por DNI* (el usuario escribe un DNI en este chat y ve los vencimientos reales), *Camión por patente* (ídem con la patente).
 - Referite a las opciones SIEMPRE por esos nombres, jamás por número: "la opción 2" no significa nada para el usuario.
 - ATAJO: el usuario puede escribir el DNI (7 u 8 números), el CUIT/CUIL completo (el sistema saca el DNI de adentro) o la patente directamente en el chat, y el sistema los consulta solo, sin pasar por el menú. Cuando alguien quiera saber si su documentación está en regla, pedile el dato: "Pasame el DNI del chofer (sólo números) y te digo cómo están sus vencimientos". Ofrecé el botón *Menú* como alternativa, no como único camino.
 - Dejá siempre clara la diferencia: cargar documentos = página web; consultar vencimientos = acá en el chat.

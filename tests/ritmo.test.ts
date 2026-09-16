@@ -30,7 +30,7 @@ describe("nombreCompleto", () => {
 
 describe("isInstantMessage", () => {
   it("botones, opciones, comandos, DNI y patentes son instantáneos", () => {
-    for (const t of ["1", "2", "3", "Chofer por DNI", "Cargar documentación", "menu", "volver", "/bot", "35413889", "AA123BB", "hola", "Buenas tardes"]) {
+    for (const t of ["1", "2", "3", "Chofer por DNI", "Carga de documentos", "menu", "volver", "/bot", "35413889", "AA123BB", "hola", "Buenas tardes"]) {
       expect(isInstantMessage(t), t).toBe(true);
     }
   });

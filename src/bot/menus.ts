@@ -44,9 +44,10 @@ export const BALANZA_MENU: Menu = {
     {
       key: "1",
       label: "Carga de Documentación",
-      buttonTitle: "Cargar documentación",
+      // Máx. 20 caracteres (límite de WhatsApp): "Carga de documentación" no entra.
+      buttonTitle: "Carga de documentos",
       hint: "Dudas para cargar en la página web: qué poner en cada campo, formatos, rechazos",
-      aliases: ["carga", "carga de documentacion", "documentacion", "cargar"],
+      aliases: ["carga", "carga de documentacion", "carga de documentos", "documentacion", "documentos", "cargar"],
       target: BotState.CARGA_DOC,
     },
     {

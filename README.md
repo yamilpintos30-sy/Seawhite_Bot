@@ -22,7 +22,7 @@ Implementa el flujo de `Esquema_Bot_IA.pdf`, afinado con las pruebas reales de p
 
 | Opción (botón) | Comportamiento |
 |---|---|
-| **Cargar documentación** | Preguntas libres. Responde con IA usando **sólo** la base de conocimiento de `knowledge/` (editable sin tocar código). Aclara siempre que la carga se hace en la página web. |
+| **Carga de documentos** | Preguntas libres. Responde con IA usando **sólo** la base de conocimiento de `knowledge/` (editable sin tocar código). Aclara siempre que la carga se hace en la página web. |
 | **Chofer por DNI** | Pide el DNI → `POST /api/vencimientos/chofer` → Licencia / 931 / ART con estado ✅ ⚠️ ❌ ➖ → preguntas sobre esos datos con IA. |
 | **Camión por patente** | Ídem con la patente → Seguro / VTV. |
 

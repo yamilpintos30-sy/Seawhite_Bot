@@ -42,7 +42,8 @@ describe("menuButtons", () => {
 
   it("el texto de cada botón selecciona su opción al volver como mensaje", () => {
     // Al tocar un botón, WhatsApp manda el TÍTULO como texto (o Chatwoot el value).
-    expect(matchOption(BALANZA_MENU, "Cargar documentación")?.key).toBe("1");
+    expect(matchOption(BALANZA_MENU, "Carga de documentos")?.key).toBe("1");
+    expect(matchOption(BALANZA_MENU, "Cargar documentación")?.key).toBe("1"); // título anterior
     expect(matchOption(BALANZA_MENU, "Chofer por DNI")?.key).toBe("2");
     expect(matchOption(BALANZA_MENU, "Camión por patente")?.key).toBe("3");
     expect(matchOption(BALANZA_MENU, "1")?.key).toBe("1");
