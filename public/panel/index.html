@@ -139,6 +139,8 @@
       .etiqueta { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
       .etiqueta.panel { background: #e6f0fd; color: #14406e; }
       .etiqueta.repo { background: #f0f1f5; color: #5a6480; }
+      .etiqueta.aplicado { background: #e7f6ed; color: #14663a; }
+      .etiqueta.pendiente { background: #fdf0da; color: #8a5200; }
       table { width: 100%; border-collapse: collapse; font-size: 14px; }
       th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--borde); }
       th { color: var(--suave); font-weight: 600; font-size: 13px; }
@@ -208,14 +210,15 @@
             </p>
             <div id="contexto-aviso"></div>
             <div class="meta" id="contexto-meta"></div>
+            <div style="margin:0 0 12px" id="estado-contexto"></div>
             <div class="fila" style="margin-bottom:12px">
               <input type="file" id="archivo" accept=".txt,.md" style="max-width:340px" />
               <span class="ayuda" style="margin:0">Cargá un .txt o .md para reemplazar el texto de abajo</span>
             </div>
             <textarea id="editor" spellcheck="false"></textarea>
             <div class="fila" style="margin-top:14px">
-              <button class="btn" id="guardar">Guardar y activar</button>
-              <button class="btn secundario" id="descartar">Descartar cambios</button>
+              <button class="btn secundario" id="guardar" disabled>Guardar y activar</button>
+              <button class="btn secundario" id="descartar" disabled>Descartar cambios</button>
               <span class="ayuda" style="margin:0" id="contador"></span>
             </div>
           </div>
@@ -342,6 +345,7 @@
         try {
           const data = await api("/panel/api/knowledge");
           estado.contextoOriginal = data.contenido;
+          estado.editable = data.editable;
           $("#editor").value = data.contenido;
           actualizarContador();
           const origen =
@@ -356,7 +360,6 @@
           ]
             .filter(Boolean)
             .join("");
-          $("#guardar").disabled = !data.editable;
           if (data.problema) avisoContexto(data.problema, "error");
           else avisoContexto("", "");
         } catch (err) {
@@ -364,10 +367,23 @@
         }
       }
 
+      /**
+       * El botón azul significa "hay algo para aplicar". Sin cambios queda gris
+       * y apagado, así se ve de un vistazo que lo que está abajo es lo que el
+       * bot está usando de verdad.
+       */
       function actualizarContador() {
         const largo = $("#editor").value.length;
-        const cambio = $("#editor").value !== estado.contextoOriginal;
-        $("#contador").textContent = `${numero(largo)} caracteres${cambio ? " · hay cambios sin guardar" : ""}`;
+        const hayCambios = $("#editor").value !== estado.contextoOriginal;
+        const puedeGuardar = hayCambios && estado.editable;
+
+        $("#guardar").disabled = !puedeGuardar;
+        $("#guardar").className = puedeGuardar ? "btn" : "btn secundario";
+        $("#descartar").disabled = !hayCambios;
+        $("#estado-contexto").innerHTML = hayCambios
+          ? `<span class="etiqueta pendiente">● Cambios sin aplicar</span>`
+          : `<span class="etiqueta aplicado">✓ Aplicado: es lo que el bot está usando</span>`;
+        $("#contador").textContent = `${numero(largo)} caracteres${hayCambios ? " · tocá “Guardar y activar” para que el bot lo use" : ""}`;
       }
       $("#editor").addEventListener("input", actualizarContador);
 
@@ -402,7 +418,7 @@
         } catch (err) {
           avisoContexto(err.message, "error");
         } finally {
-          $("#guardar").disabled = false;
+          actualizarContador();
         }
       });
 
