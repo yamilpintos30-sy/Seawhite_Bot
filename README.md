@@ -163,3 +163,26 @@ El tono y las reglas de oro (no inventar, pedir captura, no prometer aprobación
 - El webhook exige `?token=<WEBHOOK_SECRET>`; sin él responde 401.
 - Se usa la *service role key* de Supabase sólo del lado del servidor; las tablas tienen RLS activo sin políticas públicas.
 - Si la API SeaLink usa un certificado propio y falla el TLS, configurar el certificado en Node (`NODE_EXTRA_CA_CERTS=ruta/al/cert.pem`); no desactivar la validación en producción.
+
+## Panel web (`/panel`)
+
+Panel interno para el equipo de SEA WHITE, servido por el mismo servicio de Render:
+`https://seawhite-bot.onrender.com/panel`.
+
+Se publica **sólo** si existe la variable `ADMIN_PASSWORD` (mínimo 8 caracteres). El acceso es
+por contraseña, con cookie firmada (HMAC con `WEBHOOK_SECRET`, 12 h) y freno a la fuerza bruta
+(5 intentos por IP cada 10 minutos).
+
+| Pestaña | Qué muestra |
+|---|---|
+| **Contexto del bot** | El texto con el que responde Enri: se lee, se edita o se reemplaza subiendo un `.txt`/`.md`. Al guardar, el bot lo toma en menos de un minuto. Guarda historial de versiones y permite restaurar. |
+| **Actividad** | Personas distintas, conversaciones y mensajes por día, horarios de mayor uso y qué parte del bot se usa más. |
+| **Temas y quejas** | Análisis con IA de los mensajes de los usuarios: temas más consultados, errores de carga mencionados, quejas y sugerencias de mejora. Se cachea 30 minutos. |
+
+**Dónde vive el contexto.** En Render el disco es efímero: un archivo subido se perdería en el
+próximo deploy. Por eso el contexto del panel se guarda en Supabase (`bot_knowledge`, con
+historial en `bot_knowledge_versions`) y **manda sobre** los archivos de `knowledge/`. Si Supabase
+no está configurado o falla, el bot sigue funcionando con los archivos del repositorio.
+
+**Puesta en marcha**: ejecutar `supabase/migrations/0002_panel.sql` en el SQL Editor y cargar
+`ADMIN_PASSWORD` en Render.

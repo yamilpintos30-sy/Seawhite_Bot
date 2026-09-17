@@ -26,7 +26,13 @@ async function main(): Promise<void> {
     .then(() => logger.info("Token SeaLink precalentado"))
     .catch((err) => logger.warn({ err }, "No se pudo precalentar SeaLink (se autenticará en la primera consulta)"));
 
-  const app = createApp({ config, engine, chatwoot, logger });
+  const app = createApp({
+    config,
+    engine,
+    chatwoot,
+    logger,
+    admin: { knowledge, knowledgeRepo: container.knowledgeRepo, supabase: container.supabase },
+  });
   const server = app.listen(config.PORT, () => {
     logger.info({ port: config.PORT, model: config.CLAUDE_MODEL }, "Bot de WhatsApp SEA WHITE escuchando");
     logger.info(`Webhook: POST http://localhost:${config.PORT}/webhooks/chatwoot?token=<WEBHOOK_SECRET>`);

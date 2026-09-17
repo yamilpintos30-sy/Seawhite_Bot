@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Panel · Enri — SEA WHITE S.A.</title>
+    <style>
+      :root {
+        --azul: #0b2545;
+        --azul-claro: #14406e;
+        --acento: #1f7ae0;
+        --ok: #1f9d55;
+        --alerta: #d97706;
+        --error: #c53030;
+        --fondo: #f4f6fa;
+        --panel: #ffffff;
+        --borde: #dfe4ee;
+        --texto: #16213a;
+        --suave: #66708a;
+        --sombra: 0 1px 2px rgba(16, 33, 58, 0.06), 0 8px 24px rgba(16, 33, 58, 0.06);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--fondo);
+        color: var(--texto);
+        font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+      }
+      button { font: inherit; cursor: pointer; }
+      a { color: var(--acento); }
+
+      /* ---------- Ingreso ---------- */
+      #login {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(160deg, var(--azul) 0%, var(--azul-claro) 100%);
+        padding: 24px;
+      }
+      .tarjeta-login {
+        background: var(--panel);
+        width: min(380px, 100%);
+        padding: 32px;
+        border-radius: 16px;
+        box-shadow: var(--sombra);
+      }
+      .tarjeta-login h1 { margin: 0 0 4px; font-size: 22px; }
+      .tarjeta-login p { margin: 0 0 20px; color: var(--suave); font-size: 14px; }
+      input[type="password"], input[type="text"], textarea, select {
+        width: 100%;
+        padding: 11px 12px;
+        border: 1px solid var(--borde);
+        border-radius: 9px;
+        font: inherit;
+        background: #fff;
+        color: inherit;
+      }
+      input:focus, textarea:focus, select:focus { outline: 2px solid var(--acento); outline-offset: 1px; border-color: transparent; }
+      .btn {
+        border: 0;
+        border-radius: 9px;
+        padding: 11px 18px;
+        background: var(--acento);
+        color: #fff;
+        font-weight: 600;
+      }
+      .btn:hover { background: #1765bd; }
+      .btn:disabled { opacity: .55; cursor: not-allowed; }
+      .btn.secundario { background: #eef2f9; color: var(--azul); }
+      .btn.secundario:hover { background: #e2e8f5; }
+      .btn.chico { padding: 7px 12px; font-size: 13px; }
+
+      /* ---------- Estructura ---------- */
+      header.barra {
+        background: var(--azul);
+        color: #fff;
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      header.barra .marca { font-weight: 700; letter-spacing: .3px; }
+      header.barra .marca span { font-weight: 400; opacity: .75; }
+      header.barra .crece { flex: 1; }
+      nav.pestanas {
+        background: var(--panel);
+        border-bottom: 1px solid var(--borde);
+        padding: 0 16px;
+        display: flex;
+        gap: 4px;
+        overflow-x: auto;
+      }
+      nav.pestanas button {
+        border: 0;
+        background: none;
+        padding: 14px 16px;
+        color: var(--suave);
+        font-weight: 600;
+        border-bottom: 3px solid transparent;
+        white-space: nowrap;
+      }
+      nav.pestanas button[aria-selected="true"] { color: var(--azul); border-bottom-color: var(--acento); }
+      main { padding: 24px; max-width: 1180px; margin: 0 auto; }
+      section[hidden] { display: none; }
+      .tarjeta {
+        background: var(--panel);
+        border: 1px solid var(--borde);
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: var(--sombra);
+        margin-bottom: 20px;
+      }
+      .tarjeta h2 { margin: 0 0 4px; font-size: 17px; }
+      .tarjeta h3 { margin: 22px 0 10px; font-size: 15px; }
+      .ayuda { color: var(--suave); font-size: 13px; margin: 0 0 16px; }
+      .fila { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+      /* ---------- Métricas ---------- */
+      .metricas { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 20px; }
+      .metrica { background: var(--panel); border: 1px solid var(--borde); border-radius: 14px; padding: 16px 18px; box-shadow: var(--sombra); }
+      .metrica .valor { font-size: 30px; font-weight: 700; color: var(--azul); line-height: 1.15; }
+      .metrica .rotulo { color: var(--suave); font-size: 13px; margin-top: 2px; }
+
+      /* ---------- Gráficos ---------- */
+      .barras { display: flex; align-items: flex-end; gap: 6px; height: 190px; padding-top: 8px; overflow-x: auto; }
+      .barra { flex: 1 0 22px; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 6px; min-width: 22px; }
+      .barra .caño { width: 100%; background: linear-gradient(180deg, var(--acento), #64a6ec); border-radius: 6px 6px 0 0; min-height: 3px; }
+      .barra .pie { font-size: 11px; color: var(--suave); white-space: nowrap; }
+      .lista-barras { display: grid; gap: 10px; }
+      .lista-barras .item { display: grid; grid-template-columns: minmax(110px, 200px) 1fr auto; gap: 12px; align-items: center; font-size: 14px; }
+      .lista-barras .pista { background: #eef2f9; border-radius: 6px; height: 12px; overflow: hidden; }
+      .lista-barras .relleno { height: 100%; background: var(--acento); border-radius: 6px; }
+
+      /* ---------- Contexto ---------- */
+      textarea#editor { min-height: 460px; font-family: "Cascadia Mono", Consolas, monospace; font-size: 13px; line-height: 1.55; white-space: pre; }
+      .meta { display: flex; gap: 18px; flex-wrap: wrap; color: var(--suave); font-size: 13px; margin: 12px 0; }
+      .etiqueta { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+      .etiqueta.panel { background: #e6f0fd; color: #14406e; }
+      .etiqueta.repo { background: #f0f1f5; color: #5a6480; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--borde); }
+      th { color: var(--suave); font-weight: 600; font-size: 13px; }
+
+      /* ---------- Análisis ---------- */
+      .grupo { border: 1px solid var(--borde); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+      .grupo .encabezado { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+      .grupo .titulo { font-weight: 700; }
+      .grupo .cantidad { color: var(--suave); font-size: 13px; white-space: nowrap; }
+      .grupo .detalle { margin: 6px 0 0; }
+      .grupo .ejemplo { margin: 8px 0 0; padding-left: 12px; border-left: 3px solid var(--borde); color: var(--suave); font-style: italic; font-size: 13px; }
+      ul.sugerencias { margin: 0; padding-left: 20px; }
+      ul.sugerencias li { margin-bottom: 6px; }
+
+      .aviso { padding: 12px 14px; border-radius: 10px; font-size: 14px; margin-bottom: 14px; }
+      .aviso.ok { background: #e7f6ed; color: #14663a; }
+      .aviso.error { background: #fdecec; color: var(--error); }
+      .aviso.info { background: #eef2f9; color: #16213a; }
+      .cargando { color: var(--suave); padding: 22px 0; }
+      @media (max-width: 640px) {
+        main { padding: 16px; }
+        .lista-barras .item { grid-template-columns: 1fr; gap: 4px; }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ============ INGRESO ============ -->
+    <div id="login">
+      <form class="tarjeta-login" id="form-login">
+        <h1>Panel de Enri</h1>
+        <p>Asistente de WhatsApp · SEA WHITE S.A.</p>
+        <label for="password" style="font-size:14px;font-weight:600">Contraseña</label>
+        <input type="password" id="password" autocomplete="current-password" required style="margin:6px 0 14px" />
+        <button class="btn" style="width:100%" type="submit">Entrar</button>
+        <p id="login-error" class="aviso error" style="display:none;margin-top:14px"></p>
+      </form>
+    </div>
+
+    <!-- ============ PANEL ============ -->
+    <div id="panel" hidden>
+      <header class="barra">
+        <div class="marca">Panel de Enri <span>· SEA WHITE S.A.</span></div>
+        <div class="crece"></div>
+        <label for="periodo" style="font-size:13px;opacity:.85">Período</label>
+        <select id="periodo" style="width:auto;padding:7px 10px">
+          <option value="7">Últimos 7 días</option>
+          <option value="30" selected>Últimos 30 días</option>
+          <option value="90">Últimos 90 días</option>
+        </select>
+        <button class="btn secundario chico" id="salir">Salir</button>
+      </header>
+
+      <nav class="pestanas" role="tablist">
+        <button role="tab" data-tab="contexto" aria-selected="true">Contexto del bot</button>
+        <button role="tab" data-tab="actividad" aria-selected="false">Actividad</button>
+        <button role="tab" data-tab="analisis" aria-selected="false">Temas y quejas</button>
+      </nav>
+
+      <main>
+        <!-- ---------- Contexto ---------- -->
+        <section id="tab-contexto">
+          <div class="tarjeta">
+            <h2>Contexto que está usando el bot</h2>
+            <p class="ayuda">
+              Es el texto con el que Enri responde las consultas de carga de documentación. Podés leerlo, editarlo o reemplazarlo por
+              un archivo nuevo. Los cambios entran en menos de un minuto, sin reiniciar nada.
+            </p>
+            <div id="contexto-aviso"></div>
+            <div class="meta" id="contexto-meta"></div>
+            <div class="fila" style="margin-bottom:12px">
+              <input type="file" id="archivo" accept=".txt,.md" style="max-width:340px" />
+              <span class="ayuda" style="margin:0">Cargá un .txt o .md para reemplazar el texto de abajo</span>
+            </div>
+            <textarea id="editor" spellcheck="false"></textarea>
+            <div class="fila" style="margin-top:14px">
+              <button class="btn" id="guardar">Guardar y activar</button>
+              <button class="btn secundario" id="descartar">Descartar cambios</button>
+              <span class="ayuda" style="margin:0" id="contador"></span>
+            </div>
+          </div>
+
+          <div class="tarjeta">
+            <h2>Versiones anteriores</h2>
+            <p class="ayuda">Cada vez que se guarda un contexto nuevo, el anterior queda acá por si hace falta volver atrás.</p>
+            <div id="versiones"></div>
+          </div>
+        </section>
+
+        <!-- ---------- Actividad ---------- -->
+        <section id="tab-actividad" hidden>
+          <div class="metricas" id="metricas"></div>
+          <div class="tarjeta">
+            <h2>Personas por día</h2>
+            <p class="ayuda">Cuántas personas distintas le escribieron a Enri cada día.</p>
+            <div class="barras" id="grafico-dias"></div>
+          </div>
+          <div class="tarjeta">
+            <h2>Horarios</h2>
+            <p class="ayuda">En qué horas del día se concentran los mensajes.</p>
+            <div class="barras" id="grafico-horas"></div>
+          </div>
+          <div class="tarjeta">
+            <h2>Qué se usa más</h2>
+            <p class="ayuda">Mensajes según la parte del bot en la que estaba la persona.</p>
+            <div class="lista-barras" id="grafico-secciones"></div>
+          </div>
+        </section>
+
+        <!-- ---------- Análisis ---------- -->
+        <section id="tab-analisis" hidden>
+          <div class="tarjeta">
+            <div class="fila" style="justify-content:space-between">
+              <div>
+                <h2>Qué están preguntando</h2>
+                <p class="ayuda" style="margin:0" id="analisis-meta">Análisis de las conversaciones del período elegido.</p>
+              </div>
+              <button class="btn secundario chico" id="refrescar-analisis">Actualizar análisis</button>
+            </div>
+            <div id="analisis"><p class="cargando">Cargando…</p></div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const $ = (sel) => document.querySelector(sel);
+      const estado = { dias: 30, contextoOriginal: "" };
+
+      async function api(ruta, opciones = {}) {
+        const res = await fetch(ruta, { credentials: "same-origin", headers: { "Content-Type": "application/json" }, ...opciones });
+        if (res.status === 401) {
+          mostrarLogin();
+          throw new Error("Sesión vencida");
+        }
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || "Error inesperado");
+        return data;
+      }
+
+      const numero = (n) => new Intl.NumberFormat("es-AR").format(n);
+      const fechaCorta = (iso) => {
+        const [a, m, d] = iso.split("-");
+        return `${d}/${m}`;
+      };
+      const escapar = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+      /* ---------- Ingreso ---------- */
+      function mostrarLogin() {
+        $("#login").style.display = "grid";
+        $("#panel").hidden = true;
+      }
+      function mostrarPanel() {
+        $("#login").style.display = "none";
+        $("#panel").hidden = false;
+      }
+
+      $("#form-login").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const error = $("#login-error");
+        error.style.display = "none";
+        try {
+          await api("/panel/api/login", { method: "POST", body: JSON.stringify({ password: $("#password").value }) });
+          $("#password").value = "";
+          mostrarPanel();
+          cargarTodo();
+        } catch (err) {
+          error.textContent = err.message;
+          error.style.display = "block";
+        }
+      });
+
+      $("#salir").addEventListener("click", async () => {
+        await fetch("/panel/api/logout", { method: "POST", credentials: "same-origin" });
+        mostrarLogin();
+      });
+
+      /* ---------- Pestañas ---------- */
+      document.querySelectorAll("nav.pestanas button").forEach((boton) => {
+        boton.addEventListener("click", () => {
+          document.querySelectorAll("nav.pestanas button").forEach((b) => b.setAttribute("aria-selected", String(b === boton)));
+          for (const nombre of ["contexto", "actividad", "analisis"]) {
+            $(`#tab-${nombre}`).hidden = nombre !== boton.dataset.tab;
+          }
+          if (boton.dataset.tab === "analisis" && !estado.analisisCargado) cargarAnalisis();
+        });
+      });
+
+      $("#periodo").addEventListener("change", () => {
+        estado.dias = Number($("#periodo").value);
+        estado.analisisCargado = false;
+        cargarActividad();
+        if (!$("#tab-analisis").hidden) cargarAnalisis();
+      });
+
+      /* ---------- Contexto ---------- */
+      function avisoContexto(texto, tipo) {
+        $("#contexto-aviso").innerHTML = texto ? `<div class="aviso ${tipo}">${escapar(texto)}</div>` : "";
+      }
+
+      async function cargarContexto() {
+        try {
+          const data = await api("/panel/api/knowledge");
+          estado.contextoOriginal = data.contenido;
+          $("#editor").value = data.contenido;
+          actualizarContador();
+          const origen =
+            data.origen === "panel"
+              ? `<span class="etiqueta panel">Subido desde el panel</span>`
+              : `<span class="etiqueta repo">Archivo del repositorio</span>`;
+          $("#contexto-meta").innerHTML = [
+            origen,
+            `<span>${numero(data.caracteres)} caracteres</span>`,
+            data.actualizadoEl ? `<span>Actualizado: ${new Date(data.actualizadoEl).toLocaleString("es-AR")}</span>` : "",
+            data.nota ? `<span>Origen: ${escapar(data.nota)}</span>` : "",
+          ]
+            .filter(Boolean)
+            .join("");
+          $("#guardar").disabled = !data.editable;
+          if (!data.editable) avisoContexto("Para poder guardar cambios hay que configurar Supabase en el servidor.", "error");
+          else avisoContexto("", "");
+        } catch (err) {
+          avisoContexto(err.message, "error");
+        }
+      }
+
+      function actualizarContador() {
+        const largo = $("#editor").value.length;
+        const cambio = $("#editor").value !== estado.contextoOriginal;
+        $("#contador").textContent = `${numero(largo)} caracteres${cambio ? " · hay cambios sin guardar" : ""}`;
+      }
+      $("#editor").addEventListener("input", actualizarContador);
+
+      $("#archivo").addEventListener("change", async (e) => {
+        const archivo = e.target.files[0];
+        if (!archivo) return;
+        $("#editor").value = await archivo.text();
+        actualizarContador();
+        avisoContexto(`Cargué "${archivo.name}". Revisá el texto y tocá "Guardar y activar".`, "ok");
+      });
+
+      $("#descartar").addEventListener("click", () => {
+        $("#editor").value = estado.contextoOriginal;
+        actualizarContador();
+        avisoContexto("", "");
+      });
+
+      $("#guardar").addEventListener("click", async () => {
+        const contenido = $("#editor").value;
+        if (contenido === estado.contextoOriginal) {
+          avisoContexto("No hay cambios para guardar.", "info");
+          return;
+        }
+        if (!confirm("El bot va a empezar a responder con este contexto. ¿Confirmás?")) return;
+        $("#guardar").disabled = true;
+        try {
+          const nota = $("#archivo").files[0]?.name;
+          await api("/panel/api/knowledge", { method: "PUT", body: JSON.stringify({ contenido, nota }) });
+          avisoContexto("Listo: el bot ya está usando este contexto.", "ok");
+          await cargarContexto();
+          await cargarVersiones();
+        } catch (err) {
+          avisoContexto(err.message, "error");
+        } finally {
+          $("#guardar").disabled = false;
+        }
+      });
+
+      async function cargarVersiones() {
+        try {
+          const { versiones } = await api("/panel/api/knowledge/versions");
+          if (!versiones.length) {
+            $("#versiones").innerHTML = `<p class="ayuda" style="margin:0">Todavía no hay versiones anteriores.</p>`;
+            return;
+          }
+          $("#versiones").innerHTML = `
+            <table>
+              <thead><tr><th>Fecha</th><th>Tamaño</th><th>Origen</th><th></th></tr></thead>
+              <tbody>
+                ${versiones
+                  .map(
+                    (v) => `<tr>
+                      <td>${new Date(v.createdAt).toLocaleString("es-AR")}</td>
+                      <td>${numero(v.chars)} caracteres</td>
+                      <td>${escapar(v.note || "—")}</td>
+                      <td style="text-align:right"><button class="btn secundario chico" data-version="${v.id}">Restaurar</button></td>
+                    </tr>`,
+                  )
+                  .join("")}
+              </tbody>
+            </table>`;
+          $("#versiones")
+            .querySelectorAll("button[data-version]")
+            .forEach((b) =>
+              b.addEventListener("click", async () => {
+                if (!confirm("¿Restaurar esta versión? La actual queda guardada en el historial.")) return;
+                await api("/panel/api/knowledge/restore", { method: "POST", body: JSON.stringify({ id: Number(b.dataset.version) }) });
+                await cargarContexto();
+                await cargarVersiones();
+                avisoContexto("Versión restaurada: el bot ya la está usando.", "ok");
+              }),
+            );
+        } catch (err) {
+          $("#versiones").innerHTML = `<div class="aviso error">${escapar(err.message)}</div>`;
+        }
+      }
+
+      /* ---------- Actividad ---------- */
+      function barras(contenedor, datos, etiqueta) {
+        const max = Math.max(1, ...datos.map((d) => d.valor));
+        contenedor.innerHTML = datos
+          .map(
+            (d) => `<div class="barra" title="${escapar(d.titulo)}">
+              <div class="caño" style="height:${Math.round((d.valor / max) * 150)}px"></div>
+              <div class="pie">${escapar(d.pie)}</div>
+            </div>`,
+          )
+          .join("");
+        if (!datos.length) contenedor.innerHTML = `<p class="ayuda">Sin datos de ${etiqueta} en este período.</p>`;
+      }
+
+      async function cargarActividad() {
+        try {
+          const s = await api(`/panel/api/stats?dias=${estado.dias}`);
+          $("#metricas").innerHTML = [
+            { valor: numero(s.totalPersonas), rotulo: "Personas distintas" },
+            { valor: numero(s.totalConversaciones), rotulo: "Conversaciones" },
+            { valor: numero(s.totalMensajes), rotulo: "Mensajes recibidos" },
+            { valor: s.promedioMensajesPorConversacion, rotulo: "Mensajes por conversación" },
+          ]
+            .map((m) => `<div class="metrica"><div class="valor">${m.valor}</div><div class="rotulo">${m.rotulo}</div></div>`)
+            .join("");
+
+          barras(
+            $("#grafico-dias"),
+            s.porDia.map((d) => ({ valor: d.personas, pie: fechaCorta(d.fecha), titulo: `${d.fecha}: ${d.personas} personas, ${d.mensajes} mensajes` })),
+            "días",
+          );
+          barras(
+            $("#grafico-horas"),
+            s.porHora.map((h) => ({ valor: h.mensajes, pie: String(h.hora).padStart(2, "0"), titulo: `${h.hora}:00 — ${h.mensajes} mensajes` })),
+            "horarios",
+          );
+
+          const maxSeccion = Math.max(1, ...s.porSeccion.map((x) => x.mensajes));
+          $("#grafico-secciones").innerHTML = s.porSeccion
+            .map(
+              (x) => `<div class="item">
+                <span>${escapar(x.seccion)}</span>
+                <span class="pista"><span class="relleno" style="width:${Math.round((x.mensajes / maxSeccion) * 100)}%"></span></span>
+                <span>${numero(x.mensajes)}</span>
+              </div>`,
+            )
+            .join("");
+        } catch (err) {
+          $("#metricas").innerHTML = `<div class="aviso error">${escapar(err.message)}</div>`;
+        }
+      }
+
+      /* ---------- Análisis ---------- */
+      function grupos(titulo, lista, vacio) {
+        if (!lista.length) return `<h3>${titulo}</h3><p class="ayuda">${vacio}</p>`;
+        return (
+          `<h3>${titulo}</h3>` +
+          lista
+            .map(
+              (g) => `<div class="grupo">
+                <div class="encabezado"><span class="titulo">${escapar(g.titulo)}</span><span class="cantidad">${numero(g.cantidad)} mensajes</span></div>
+                <p class="detalle">${escapar(g.detalle)}</p>
+                ${g.ejemplos.map((e) => `<p class="ejemplo">“${escapar(e)}”</p>`).join("")}
+              </div>`,
+            )
+            .join("")
+        );
+      }
+
+      async function cargarAnalisis(forzar = false) {
+        $("#analisis").innerHTML = `<p class="cargando">Analizando las conversaciones… (puede tardar unos segundos)</p>`;
+        try {
+          const a = await api(`/panel/api/insights?dias=${estado.dias}${forzar ? "&refrescar=1" : ""}`);
+          estado.analisisCargado = true;
+          $("#analisis-meta").textContent = `${numero(a.mensajesAnalizados)} mensajes analizados · actualizado ${new Date(a.generadoEl).toLocaleString("es-AR")}`;
+          $("#analisis").innerHTML =
+            (a.resumen ? `<div class="aviso info" style="background:#eef2f9;color:#16213a">${escapar(a.resumen)}</div>` : "") +
+            grupos("Temas más consultados", a.temas, "Sin temas para mostrar.") +
+            grupos("Errores de carga mencionados", a.errores, "No aparecieron errores de carga.") +
+            grupos("Quejas y malestar", a.quejas, "No hubo quejas en este período.") +
+            (a.sugerencias.length
+              ? `<h3>Qué conviene mejorar</h3><ul class="sugerencias">${a.sugerencias.map((s) => `<li>${escapar(s)}</li>`).join("")}</ul>`
+              : "");
+        } catch (err) {
+          $("#analisis").innerHTML = `<div class="aviso error">${escapar(err.message)}</div>`;
+        }
+      }
+
+      $("#refrescar-analisis").addEventListener("click", () => cargarAnalisis(true));
+
+      /* ---------- Arranque ---------- */
+      async function cargarTodo() {
+        await cargarContexto();
+        await cargarVersiones();
+        await cargarActividad();
+      }
+
+      api("/panel/api/session")
+        .then(() => {
+          mostrarPanel();
+          cargarTodo();
+        })
+        .catch(() => mostrarLogin());
+    </script>
+  </body>
+</html>

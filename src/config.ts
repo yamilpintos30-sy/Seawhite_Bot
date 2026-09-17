@@ -41,8 +41,12 @@ const schema = z.object({
    * ignorar el resto. Vacío = sin filtro.
    */
   CHATWOOT_INBOX_ID: z.string().optional(),
-  /** Token compartido para validar que el webhook realmente viene de Chatwoot. */
+  /** Token compartido para validar que el webhook realmente viene de Chatwoot (también firma la sesión del panel). */
   WEBHOOK_SECRET: z.string().min(8, "WEBHOOK_SECRET debe tener al menos 8 caracteres"),
+
+  // --- Panel web (/panel) ---
+  /** Contraseña del panel de administración. Vacía = el panel NO se publica. */
+  ADMIN_PASSWORD: z.string().min(8, "ADMIN_PASSWORD debe tener al menos 8 caracteres").optional(),
   /** Estados de conversación en los que el bot responde (separados por coma). */
   BOT_ACTIVE_STATUSES: z.string().default("pending,open"),
   /**

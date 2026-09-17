@@ -60,6 +60,10 @@ services:
       - key: DAILY_LOOKUP_LIMIT
         value: "30"
 
+      # --- Panel web (/panel): vacío = panel apagado ---
+      - key: ADMIN_PASSWORD
+        sync: false
+
       # --- Ritmo de conversación ---
       - key: DEBOUNCE_SECONDS
         value: "12"
