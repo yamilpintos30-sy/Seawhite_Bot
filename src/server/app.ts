@@ -12,6 +12,12 @@ export function createApp(deps: WebhookDeps & { admin?: Omit<AdminDeps, "config"
 
   const panelActivo = Boolean(deps.admin && deps.config.ADMIN_PASSWORD);
 
+  // La raíz no tiene contenido propio: quien entra a mano busca el panel.
+  app.get("/", (_req, res) => {
+    if (panelActivo) res.redirect("/panel/");
+    else res.type("html").send("<h1>Bot de WhatsApp SEA WHITE</h1><p>El servicio está funcionando. El panel se publica al cargar <code>ADMIN_PASSWORD</code>.</p>");
+  });
+
   app.get("/health", (_req, res) => {
     res.json({ ok: true, service: "seawhite-whatsapp-bot", panel: panelActivo, time: new Date().toISOString() });
   });
