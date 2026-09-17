@@ -22,6 +22,8 @@ export const camionDominioHandler: StateHandler = {
   },
 
   async handle(ctx: HandlerContext): Promise<HandlerResult> {
+    // Sin un solo número no hay intento de patente: lo atiende la IA.
+    if (!/\d/.test(ctx.message.text)) return answerWithAi(ctx, "carga");
     return consultarCamion(ctx);
   },
 };
@@ -71,7 +73,9 @@ async function consultarCamion(ctx: HandlerContext): Promise<HandlerResult> {
 
   if (!lookup.found) {
     return {
-      messages: [`No encontré ningún camión o acoplado con la patente *${patente.value}*. Revisá que esté bien escrita y volvé a intentarlo, o tocá el botón *Menú* acá abajo.`],
+      messages: [
+        `No encontré ningún camión o acoplado con la patente *${patente.value}* en el sistema.\n\nRevisá que esté bien escrita y volvé a intentarlo. Si la patente es correcta, puede que el vehículo todavía no esté dado de alta: en ese caso comunicate con *SEA WHITE* para que lo verifiquen.`,
+      ],
     };
   }
 

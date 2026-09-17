@@ -22,6 +22,9 @@ export const choferDniHandler: StateHandler = {
   },
 
   async handle(ctx: HandlerContext): Promise<HandlerResult> {
+    // Sin un solo número no hay intento de DNI (una pregunta, un reclamo): lo
+    // atiende la IA, en vez de repetir "No encontré un número de DNI".
+    if (!/\d/.test(ctx.message.text)) return answerWithAi(ctx, "carga");
     return consultarChofer(ctx);
   },
 };
@@ -72,7 +75,9 @@ async function consultarChofer(ctx: HandlerContext): Promise<HandlerResult> {
 
   if (!lookup.found) {
     return {
-      messages: [`No encontré ningún chofer con el DNI *${dni.value}*. Revisá que esté bien escrito (sin puntos) y volvé a intentarlo, o tocá el botón *Menú* acá abajo.`],
+      messages: [
+        `No encontré ningún chofer con el DNI *${dni.value}* en el sistema.\n\nRevisá que el número esté bien escrito y volvé a intentarlo. Si el DNI es correcto, puede que el chofer todavía no esté dado de alta: en ese caso comunicate con *SEA WHITE* para que lo verifiquen.`,
+      ],
     };
   }
 

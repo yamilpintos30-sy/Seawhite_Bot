@@ -216,7 +216,7 @@ describe("BotEngine — Documentación de Chofer", () => {
     const t = setup();
     await t.send("hola");
     await t.send("2");
-    expect((await t.send("abc")).messages[0]).toContain("DNI");
+    expect((await t.send("123")).messages[0]).toContain("DNI");
     expect((await t.send("28885099")).messages[0]).toContain("No encontré ningún chofer");
     expect((await t.sessions.get("c1"))?.state).toBe(BotState.CHOFER_DNI);
   });

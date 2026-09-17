@@ -250,3 +250,47 @@ describe("mensajes no entendidos", () => {
     expect(calls).toHaveLength(1);
   });
 });
+
+describe("pedido de DNI o patente", () => {
+  /** IA de prueba que registra las consultas que le llegan. */
+  function trackedAi() {
+    const calls: string[] = [];
+    const ai: AiService = {
+      answer: async (i) => {
+        calls.push(i.userText);
+        return { text: `IA: ${i.userText}` };
+      },
+    };
+    return { ai, calls };
+  }
+
+  it("un reclamo escrito donde se espera el DNI lo atiende la IA, no el error de formato", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    await t.send("Chofer por DNI");
+    const reply = await t.send("Cuando algún ser humano lea esto, REVISEN LOS PROCEDIMIENTOS!!!");
+    expect(reply.messages[0]).toContain("IA: Cuando algún ser humano");
+    expect(reply.messages.join("\n")).not.toContain("No encontré un número de DNI");
+    expect(calls).toHaveLength(1);
+  });
+
+  it("un número mal escrito donde se espera el DNI sigue explicando el formato", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    await t.send("Chofer por DNI");
+    const reply = await t.send("123");
+    expect(reply.messages[0]).toContain("7 u 8 números");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("si el DNI no está en el sistema, sugiere comunicarse con SEA WHITE", async () => {
+    const t = setup();
+    await t.send("hola");
+    await t.send("Chofer por DNI");
+    const reply = await t.send("29625906");
+    expect(reply.messages[0]).toContain("no esté dado de alta");
+    expect(reply.messages[0]).toContain("SEA WHITE");
+  });
+});
