@@ -294,3 +294,47 @@ describe("pedido de DNI o patente", () => {
     expect(reply.messages[0]).toContain("SEA WHITE");
   });
 });
+
+describe("DNI y patente reconocidos en cualquier pantalla", () => {
+  function trackedAi() {
+    const calls: string[] = [];
+    const ai: AiService = {
+      answer: async (i) => {
+        calls.push(i.userText);
+        return { text: `IA: ${i.userText}` };
+      },
+    };
+    return { ai, calls };
+  }
+
+  it("un DNI escrito dentro de Carga de documentos se consulta, no lo responde la IA", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    await t.send("Carga de documentos");
+    const reply = await t.send("35413889");
+    expect(reply.messages.join("\n")).toContain("PEREZ JUAN");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("una patente dentro de una frase se consulta en Carga de documentos", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    await t.send("Carga de documentos");
+    const reply = await t.send("Me diria que falta cargar del camion AA006QS");
+    expect(reply.messages.join("\n")).toContain("AA006QS");
+    expect(reply.messages.join("\n")).toContain("Seguro");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("una pregunta común dentro de Carga de documentos sigue yendo a la IA", async () => {
+    const { ai, calls } = trackedAi();
+    const t = setup(ai);
+    await t.send("hola");
+    await t.send("Carga de documentos");
+    const reply = await t.send("que pongo en el campo de la art");
+    expect(reply.messages[0]).toBe("IA: que pongo en el campo de la art");
+    expect(calls).toHaveLength(1);
+  });
+});

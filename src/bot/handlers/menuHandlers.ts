@@ -2,12 +2,9 @@
  * Handlers de los menús (principal y BALANZA). Son genéricos: cualquier menú definido
  * en `menus.ts` se maneja con `createMenuHandler`.
  */
-import { findDniInText, findPatenteInText, looksLikeDni, looksLikePatente } from "../../domain/validators.js";
-import { normalizeText } from "../../utils/text.js";
 import { matchOption, renderMenu, BALANZA_MENU, MAIN_MENU, type Menu } from "../menus.js";
-import { BotState, type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
-import { camionDominioHandler } from "./documentacionCamion.js";
-import { choferDniHandler } from "./documentacionChofer.js";
+import { type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
+import { tryLookupFromText } from "./lookupRouting.js";
 import { answerWithAi } from "./shared.js";
 
 /** Saludo inicial (lo antepone el motor al primer menú): por el nombre si SeaLink identificó el teléfono. */
@@ -30,21 +27,9 @@ export function createMenuHandler(menu: Menu): StateHandler {
 
       if (!option) {
         // Un DNI o una patente escritos directo en el menú: consultar de una,
-        // sin obligar a elegir la opción primero.
-        // Dentro de una frase sólo si la frase habla de chofer o de vehículo:
-        // "mi póliza 12345678 fue rechazada" es una consulta, no un DNI.
-        const text = normalizeText(ctx.message.text);
-        if (looksLikeDni(ctx.message.text) || (/\b(dni|chofer|choferes|documento)\b/.test(text) && findDniInText(ctx.message.text))) {
-          ctx.session.state = BotState.CHOFER_DNI;
-          return choferDniHandler.handle(ctx);
-        }
-        if (looksLikePatente(ctx.message.text) || (/\b(patente|dominio|camion|acoplado|semi|vehiculo)\b/.test(text) && findPatenteInText(ctx.message.text))) {
-          ctx.session.state = BotState.CAMION_DOMINIO;
-          return camionDominioHandler.handle(ctx);
-        }
-        // No es una opción del menú: lo atiende la IA igual que en Carga de
-        // Documentación. Si no se entiende, answerWithAi vuelve al menú real.
-        return answerWithAi(ctx, "carga");
+        // sin obligar a elegir la opción primero. Si no hay nada consultable lo
+        // atiende la IA; si tampoco se entiende, answerWithAi vuelve al menú.
+        return (await tryLookupFromText(ctx)) ?? answerWithAi(ctx, "carga");
       }
       if (option.target === null) {
         return {

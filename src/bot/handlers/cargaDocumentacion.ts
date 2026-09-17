@@ -2,7 +2,8 @@
  * Opción 1 — Carga de Documentación.
  * Preguntas libres respondidas con IA a partir de la base de conocimiento (`knowledge/`).
  */
-import { BotState, type HandlerContext, type HandlerResult, type StateHandler } from "../types.js";
+import { type HandlerContext, type HandlerResult, type StateHandler, BotState } from "../types.js";
+import { tryLookupFromText } from "./lookupRouting.js";
 import { answerWithAi } from "./shared.js";
 
 export const cargaDocumentacionHandler: StateHandler = {
@@ -23,6 +24,7 @@ export const cargaDocumentacionHandler: StateHandler = {
   },
 
   async handle(ctx: HandlerContext): Promise<HandlerResult> {
-    return answerWithAi(ctx, "carga");
+    // Un DNI/CUIT o una patente escritos acá se CONSULTAN igual que en el menú.
+    return (await tryLookupFromText(ctx)) ?? answerWithAi(ctx, "carga");
   },
 };
