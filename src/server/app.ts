@@ -10,18 +10,29 @@ export function createApp(deps: WebhookDeps & { admin?: Omit<AdminDeps, "config"
   // El contexto que se sube desde el panel puede pesar varios cientos de KB.
   app.use(express.json({ limit: "2mb" }));
 
+  const panelActivo = Boolean(deps.admin && deps.config.ADMIN_PASSWORD);
+
   app.get("/health", (_req, res) => {
-    res.json({ ok: true, service: "seawhite-whatsapp-bot", time: new Date().toISOString() });
+    res.json({ ok: true, service: "seawhite-whatsapp-bot", panel: panelActivo, time: new Date().toISOString() });
   });
 
   app.use(createChatwootWebhookRouter(deps));
 
-  // Panel web: sólo si hay contraseña configurada.
-  if (deps.admin && deps.config.ADMIN_PASSWORD) {
-    app.use(createAdminRouter({ ...deps.admin, config: deps.config, logger: deps.logger }));
+  // Panel web: sólo si hay contraseña configurada. Si no la hay, /panel explica
+  // qué falta (antes respondía un "Cannot GET /panel" que no decía nada).
+  if (panelActivo) {
+    app.use(createAdminRouter({ ...deps.admin!, config: deps.config, logger: deps.logger }));
     deps.logger.info("Panel web disponible en /panel");
   } else {
-    deps.logger.info("Panel web desactivado (falta ADMIN_PASSWORD)");
+    deps.logger.warn("Panel web desactivado: falta la variable de entorno ADMIN_PASSWORD");
+    app.use("/panel", (_req, res) => {
+      res
+        .status(503)
+        .type("html")
+        .send(
+          "<h1>Panel desactivado</h1><p>Para publicarlo, cargá la variable de entorno <code>ADMIN_PASSWORD</code> (mínimo 8 caracteres) en el servicio de Render y esperá el reinicio.</p>",
+        );
+    });
   }
 
   return app;
