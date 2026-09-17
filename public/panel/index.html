@@ -357,7 +357,7 @@
             .filter(Boolean)
             .join("");
           $("#guardar").disabled = !data.editable;
-          if (!data.editable) avisoContexto("Para poder guardar cambios hay que configurar Supabase en el servidor.", "error");
+          if (data.problema) avisoContexto(data.problema, "error");
           else avisoContexto("", "");
         } catch (err) {
           avisoContexto(err.message, "error");

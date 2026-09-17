@@ -77,8 +77,22 @@ export function createAdminRouter(deps: AdminDeps): Router {
 
   router.get("/panel/api/knowledge", requireAuth, async (_req: Request, res: Response) => {
     const snapshot = await knowledge.get();
-    const guardado = knowledgeRepo ? (await knowledgeRepo.list()).find((d) => d.id === KNOWLEDGE_ID) : undefined;
+    // Si las tablas del panel todavía no existen, el contexto se muestra igual
+    // (sale del repositorio) y se avisa qué falta hacer.
+    let guardado: Awaited<ReturnType<KnowledgeRepository["list"]>>[number] | undefined;
+    let problema: string | undefined;
+    if (knowledgeRepo) {
+      try {
+        guardado = (await knowledgeRepo.list()).find((d) => d.id === KNOWLEDGE_ID);
+      } catch (err) {
+        problema = descripcionDeFalla(err);
+        logger.warn({ err }, "El panel no pudo leer el contexto guardado");
+      }
+    } else {
+      problema = "Para guardar cambios hace falta configurar Supabase en el servidor.";
+    }
     res.json({
+      problema,
       contenido: snapshot.text,
       archivos: snapshot.files,
       caracteres: snapshot.text.length,
@@ -86,7 +100,7 @@ export function createAdminRouter(deps: AdminDeps): Router {
       origen: guardado ? "panel" : "repositorio",
       actualizadoEl: guardado?.updatedAt.toISOString() ?? null,
       nota: guardado?.note ?? null,
-      editable: Boolean(knowledgeRepo),
+      editable: Boolean(knowledgeRepo) && !problema,
     });
   });
 
@@ -161,6 +175,18 @@ export function createAdminRouter(deps: AdminDeps): Router {
   });
 
   return router;
+}
+
+/**
+ * Traduce fallas técnicas de Supabase a algo accionable para quien usa el panel.
+ * La más común: todavía no se ejecutó la migración que crea las tablas.
+ */
+function descripcionDeFalla(err: unknown): string {
+  const mensaje = err instanceof Error ? err.message : String(err);
+  if (/bot_knowledge|schema cache|does not exist/i.test(mensaje)) {
+    return "Faltan las tablas del panel en Supabase. Ejecutá el archivo supabase/migrations/0002_panel.sql en el SQL Editor y volvé a entrar.";
+  }
+  return `No se pudo leer el contexto guardado: ${mensaje}`;
 }
 
 /** Período pedido (por defecto 30 días, máximo 180). */
