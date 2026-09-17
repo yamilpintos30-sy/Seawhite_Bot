@@ -63,9 +63,11 @@ export class MessageDebouncer {
 
     const existing = this.pending.get(message.conversationId);
 
-    // Con adjuntos NUNCA es instantáneo: la gente manda la foto y después
-    // escribe qué le pasa; hay que esperar para responder todo junto.
-    if (isInstantMessage(message.text) && message.attachments.length === 0) {
+    // Foto/archivo sin texto: no hay nada que "juntar"; el motor responde ya
+    // con el aviso de que no procesa archivos + el menú.
+    const soloAdjunto = message.text.trim() === "" && message.attachments.length > 0;
+
+    if (soloAdjunto || (isInstantMessage(message.text) && message.attachments.length === 0)) {
       // Instantáneo: si había buffer, se suma y sale todo junto ahora.
       if (existing) {
         clearTimeout(existing.timer);

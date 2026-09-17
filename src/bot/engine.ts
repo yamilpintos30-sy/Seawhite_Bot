@@ -8,8 +8,8 @@
  *      mensaje ya traía una consulta, el saludo va con su respuesta.
  *   3. Si una persona tomó la conversación -> silencio (el cliente puede
  *      despertar al bot con "/bot").
- *   4. Fotos y PDF: se descargan y se le pasan a la IA, que responde sobre
- *      lo que se ve (la carga sigue siendo por la página web).
+ *   4. Foto/archivo sin texto -> aviso fijo + menú (las fotos se IGNORAN,
+ *      jamás llegan a la IA).
  *   5. Comandos globales (menu/saludos, volver, cierre, ayuda, persona).
  *   6. Handler del estado actual (menús, carga con IA, chofer, camión).
  *   7. Transición: si el destino es un menú, la respuesta lleva botones.
@@ -43,6 +43,7 @@ const HANDOFF_MESSAGE = "Perfecto, le paso tu consulta a una persona del equipo 
 const AUTOMATIC_ONLY_MESSAGE =
   "Por acá la atención es automática, pero te puedo resolver casi todo yo 🤖. Contame tu consulta sobre la documentación, o escribí *menu* para ver las opciones.";
 const GENERIC_ERROR = "Uy, tuve un problema para procesar tu mensaje. Probá de nuevo en un momento o escribí *menu* para volver al inicio.";
+const NO_PHOTOS_MESSAGE = "Por acá no proceso fotos ni archivos. Contame por escrito lo que necesitás, o elegí una opción 👇";
 const FAREWELL_MESSAGE = "¡Gracias por escribirme! Cualquier consulta sobre documentación o vencimientos, acá estoy. Saludos.";
 
 /** Durante cuánto tiempo tras el cierre un "gracias" suelto se toma como cortesía y no reabre la conversación. */
@@ -156,7 +157,13 @@ export class BotEngine {
 
     let reply: BotReply;
     try {
-      reply = isNew ? await this.startConversation(session, message) : await this.dispatch(session, message);
+      if (!isNew && !message.text.trim() && message.attachments.length > 0) {
+        // Foto/archivo SOLO, sin texto: se ignora por completo (decisión del
+        // equipo) y se responde con el menú real de botones.
+        reply = await this.transition(session, message, startState(), [NO_PHOTOS_MESSAGE]);
+      } else {
+        reply = isNew ? await this.startConversation(session, message) : await this.dispatch(session, message);
+      }
     } catch (err) {
       logger.error({ err, conversationId: message.conversationId, state: session.state }, "Error procesando mensaje");
       reply = { messages: [GENERIC_ERROR] };

@@ -140,23 +140,14 @@ export class ClaudeService implements AiService {
   private buildMessages(input: AiAnswerInput, dynamicContext: string, useSystemRole: boolean): Anthropic.Beta.Messages.BetaMessageParam[] {
     const history: Anthropic.Beta.Messages.BetaMessageParam[] = input.history.map((t) => ({ role: t.role, content: t.content }));
     const userText = input.userText.trim();
-    const texto = useSystemRole ? userText : `<contexto_operador>\n${dynamicContext}\n</contexto_operador>\n\n${userText}`;
 
-    history.push({ role: "user", content: this.userContent(texto, input.attachments) });
-    if (useSystemRole) history.push({ role: "system", content: dynamicContext });
+    if (useSystemRole) {
+      history.push({ role: "user", content: userText });
+      history.push({ role: "system", content: dynamicContext });
+    } else {
+      history.push({ role: "user", content: `<contexto_operador>\n${dynamicContext}\n</contexto_operador>\n\n${userText}` });
+    }
     return history;
-  }
-
-  /** Turno del usuario: las fotos/PDF van como bloques propios, antes del texto. */
-  private userContent(text: string, attachments?: AiAnswerInput["attachments"]): string | Anthropic.Beta.Messages.BetaContentBlockParam[] {
-    if (!attachments || attachments.length === 0) return text;
-    const blocks: Anthropic.Beta.Messages.BetaContentBlockParam[] = attachments.map((a) =>
-      a.kind === "image"
-        ? { type: "image", source: { type: "base64", media_type: a.mediaType, data: a.base64 } }
-        : { type: "document", source: { type: "base64", media_type: "application/pdf", data: a.base64 } },
-    );
-    blocks.push({ type: "text", text: text || "(El usuario mandó esto sin escribir nada más.)" });
-    return blocks;
   }
 
   private translateError(err: unknown): Error {
