@@ -86,7 +86,7 @@ describe("BotEngine — menús", () => {
     expect(reply.messages[0]).toContain("IA(carga): me rechazaron la art");
   });
 
-  it("una foto sola se ignora por completo: aviso fijo + menú real (sin IA)", async () => {
+  it("una foto sola se le manda a la IA para que la lea", async () => {
     await t.send("hola");
     const reply = await t.engine.handle({
       id: "img1",
@@ -95,10 +95,9 @@ describe("BotEngine — menús", () => {
       text: "",
       attachments: [{ url: "https://x/foto.jpg", fileType: "image" }],
     });
-    expect(reply.messages[0]).toContain("no proceso fotos");
-    expect(reply.messages.join(" ")).toContain("Carga de Documentación");
-    expect(reply.rich?.some((r) => r.kind === "buttons")).toBe(true);
-    expect(t.ai.calls).toHaveLength(0); // la IA jamas ve la imagen
+    expect(t.ai.calls).toHaveLength(1);
+    // La descarga falla (URL inventada): se avisa y la IA responde igual.
+    expect(reply.messages.join(" ")).toContain("No pude abrir el archivo");
   });
 
   it("'hola' con la conversación ya abierta muestra el menú real, sin pasar por la IA", async () => {

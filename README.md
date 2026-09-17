@@ -28,7 +28,7 @@ Implementa el flujo de `Esquema_Bot_IA.pdf`, afinado con las pruebas reales de p
 
 **Reglas de conversación** (decisiones del equipo, ver historial de commits):
 - Cada respuesta cierra con dos botones: **[Menú 😊] [Eso es todo, gracias]** (estilo Banco Provincia). "Eso es todo" despide y cierra la conversación.
-- **Fotos y archivos se ignoran por completo**: nunca se piden, nunca se procesan; una foto sola recibe un aviso fijo + el menú. La IA tiene prohibido pedirlas.
+- **Fotos y PDF**: se descargan de Chatwoot y se le pasan a Claude, que responde sobre lo que se ve (captura del error, carnet, póliza). Hasta 3 archivos de 5 MB por mensaje; audios y formatos no legibles reciben un aviso. Mandar una foto NO carga nada: la carga sigue siendo por la página web.
 - **Buffer de mensajes** (`DEBOUNCE_SECONDS`, 12 s): junta lo que la persona escribe y responde una vez. Botones, opciones, saludos, DNI y patentes responden al instante. El primer mensaje también espera (salvo un saludo): si trae una consulta, el saludo sale junto con su respuesta.
 - **Seguimientos desde el último mensaje del cliente**: 5 min "¿necesitás algo más?" (con botones), 30 min despedida + cierre, 35 min respaldo de reseteo.
 - Un DNI, un CUIT/CUIL (se extrae el DNI, validando el dígito verificador) o una patente escritos en el menú (o dentro de una frase en la consulta de chofer/camión) **consultan directamente**; una consulta que no es una opción la responde la IA; un número suelto o un mensaje ininteligible muestra el menú real con botones.

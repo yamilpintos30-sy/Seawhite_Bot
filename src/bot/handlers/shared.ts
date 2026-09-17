@@ -1,4 +1,5 @@
 /** Helpers compartidos por los handlers que usan IA. */
+import { downloadAttachments } from "../../ai/attachments.js";
 import { AiUnavailableError } from "../../ai/claudeService.js";
 import type { AiMode } from "../../ai/types.js";
 import { formatIso, todayInTimeZone } from "../../utils/dates.js";
@@ -45,10 +46,10 @@ function notUnderstood(text: string): HandlerResult {
 export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Record<string, unknown>): Promise<HandlerResult> {
   const { session, message, services } = ctx;
 
-  // Las fotos y archivos se IGNORAN por completo (decisión del equipo): la IA
-  // nunca los recibe. Un mensaje sin texto no tiene nada que responder acá
-  // (el motor intercepta antes los mensajes de adjunto solo).
-  if (!message.text.trim()) {
+  // Las fotos y PDF se le mandan a la IA para que los lea (carnet, póliza,
+  // captura del error de la página). Un mensaje sin texto NI adjuntos no tiene
+  // nada que responder.
+  if (!message.text.trim() && message.attachments.length === 0) {
     return { messages: ["Contame por escrito tu consulta y te ayudo."] };
   }
 
@@ -56,7 +57,7 @@ export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Rec
   // consulta ni vale una llamada a la IA (respondía algo genérico que parecía la
   // opción 1). Con charla previa sí va a la IA: puede ser la respuesta a lo que
   // se venía hablando (p. ej. el teléfono que la página no le toma).
-  if (!/\p{L}/u.test(message.text) && session.history.length === 0) {
+  if (!/\p{L}/u.test(message.text) && session.history.length === 0 && message.attachments.length === 0) {
     return notUnderstood(/\d/.test(message.text) ? NUMBER_NOT_UNDERSTOOD_MESSAGE : NOT_UNDERSTOOD_MESSAGE);
   }
 
@@ -69,11 +70,16 @@ export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Rec
   // Recorte defensivo de mensajes larguísimos (pegadas de texto, spam).
   const userText = message.text.length > services.config.AI_MAX_INPUT_CHARS ? message.text.slice(0, services.config.AI_MAX_INPUT_CHARS) : message.text;
 
+  // Fotos/PDF del usuario: se descargan de Chatwoot y se le pasan a la IA. Los
+  // que no se pueden leer (audios, formatos raros) devuelven un aviso.
+  const { attachments, warnings } = message.attachments.length > 0 ? await downloadAttachments(message.attachments, services.logger) : { attachments: [], warnings: [] };
+
   try {
     const result = await services.ai.answer({
       mode,
       history: session.history,
       userText,
+      attachments,
       data,
     });
 
@@ -82,17 +88,19 @@ export async function answerWithAi(ctx: HandlerContext, mode: AiMode, data?: Rec
       return notUnderstood(NOT_UNDERSTOOD_MESSAGE);
     }
 
-    pushHistory(ctx, "user", message.text.trim());
+    // En el historial queda el texto (los adjuntos no se guardan: pesan y no se
+    // pueden persistir), con una marca de que había archivos.
+    pushHistory(ctx, "user", attachments.length > 0 ? `${message.text.trim()} [el usuario adjuntó ${attachments.length} archivo(s)]`.trim() : message.text.trim());
     pushHistory(ctx, "assistant", result.text);
 
     if (result.usage) {
-      services.logger.info({ conversationId: session.conversationId, mode, usage: result.usage }, "Consulta respondida con IA");
+      services.logger.info({ conversationId: session.conversationId, mode, adjuntos: attachments.length, usage: result.usage }, "Consulta respondida con IA");
     }
-    return { messages: [toWhatsAppFormat(result.text)] };
+    return { messages: [...warnings, toWhatsAppFormat(result.text)] };
   } catch (err) {
     if (err instanceof AiUnavailableError) {
       services.logger.error({ err: err.message, conversationId: session.conversationId }, "IA no disponible");
-      return { messages: [err.userMessage] };
+      return { messages: [...warnings, err.userMessage] };
     }
     throw err;
   }

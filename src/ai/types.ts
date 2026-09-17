@@ -8,10 +8,17 @@ export interface ChatTurn {
   content: string;
 }
 
+/** Adjunto ya descargado y listo para mandarle a Claude (foto o PDF del usuario). */
+export type AiAttachment =
+  | { kind: "image"; mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp"; base64: string }
+  | { kind: "pdf"; base64: string };
+
 export interface AiAnswerInput {
   mode: AiMode;
   history: ChatTurn[];
   userText: string;
+  /** Fotos/PDF que mandó el usuario en ESTE mensaje (no se guardan en el historial). */
+  attachments?: AiAttachment[];
   /** Datos de la API para modos chofer/camión. */
   data?: Record<string, unknown>;
 }
