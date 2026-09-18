@@ -530,12 +530,28 @@
         );
       }
 
+      /**
+       * Sin `forzar` trae el último análisis guardado (instantáneo). Con `forzar`
+       * genera uno nuevo, que tarda: la IA lee cientos de mensajes.
+       */
       async function cargarAnalisis(forzar = false) {
-        $("#analisis").innerHTML = `<p class="cargando">Analizando las conversaciones… (puede tardar unos segundos)</p>`;
+        const boton = $("#refrescar-analisis");
+        boton.disabled = true;
+        boton.textContent = forzar ? "Analizando…" : "Actualizar análisis";
+        if (forzar) {
+          $("#analisis-meta").textContent = "Analizando las conversaciones… puede tardar hasta un minuto.";
+        } else if (!estado.analisisCargado) {
+          $("#analisis").innerHTML = `<p class="cargando">Buscando el último análisis…</p>`;
+        }
         try {
-          const a = await api(`/panel/api/insights?dias=${estado.dias}${forzar ? "&refrescar=1" : ""}`);
+          const a = forzar
+            ? await api(`/panel/api/insights/refresh?dias=${estado.dias}`, { method: "POST" })
+            : await api(`/panel/api/insights?dias=${estado.dias}`);
           estado.analisisCargado = true;
-          $("#analisis-meta").textContent = `${numero(a.mensajesAnalizados)} mensajes analizados · actualizado ${new Date(a.generadoEl).toLocaleString("es-AR")}`;
+          const cuando = new Date(a.generadoEl).toLocaleString("es-AR");
+          $("#analisis-meta").textContent = a.mensajesAnalizados
+            ? `${numero(a.mensajesAnalizados)} mensajes analizados · ${a.cacheado ? "guardado el" : "generado ahora,"} ${cuando}`
+            : "Todavía no hay consultas en este período.";
           $("#analisis").innerHTML =
             (a.resumen ? `<div class="aviso info" style="background:#eef2f9;color:#16213a">${escapar(a.resumen)}</div>` : "") +
             grupos("Temas más consultados", a.temas, "Sin temas para mostrar.") +
@@ -546,6 +562,10 @@
               : "");
         } catch (err) {
           $("#analisis").innerHTML = `<div class="aviso error">${escapar(err.message)}</div>`;
+          $("#analisis-meta").textContent = "No se pudo completar el análisis.";
+        } finally {
+          boton.disabled = false;
+          boton.textContent = "Actualizar análisis";
         }
       }
 

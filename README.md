@@ -177,12 +177,12 @@ por contraseña, con cookie firmada (HMAC con `WEBHOOK_SECRET`, 12 h) y freno a 
 |---|---|
 | **Contexto del bot** | El texto con el que responde Enri: se lee, se edita o se reemplaza subiendo un `.txt`/`.md`. Al guardar, el bot lo toma en menos de un minuto. Guarda historial de versiones y permite restaurar. |
 | **Actividad** | Personas distintas, conversaciones y mensajes por día, horarios de mayor uso y qué parte del bot se usa más. |
-| **Temas y quejas** | Análisis con IA de los mensajes de los usuarios: temas más consultados, errores de carga mencionados, quejas y sugerencias de mejora. Se cachea 30 minutos. |
+| **Temas y quejas** | Análisis con IA de los mensajes de los usuarios: temas más consultados, errores de carga mencionados, quejas y sugerencias de mejora. Se muestra el último análisis guardado (instantáneo) y se genera uno nuevo con el botón. |
 
 **Dónde vive el contexto.** En Render el disco es efímero: un archivo subido se perdería en el
 próximo deploy. Por eso el contexto del panel se guarda en Supabase (`bot_knowledge`, con
 historial en `bot_knowledge_versions`) y **manda sobre** los archivos de `knowledge/`. Si Supabase
 no está configurado o falla, el bot sigue funcionando con los archivos del repositorio.
 
-**Puesta en marcha**: ejecutar `supabase/migrations/0002_panel.sql` en el SQL Editor y cargar
+**Puesta en marcha**: ejecutar `supabase/migrations/0002_panel.sql` y `0003_insights.sql` en el SQL Editor y cargar
 `ADMIN_PASSWORD` en Render.

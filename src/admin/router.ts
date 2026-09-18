@@ -13,6 +13,7 @@ import type { KnowledgeRepository } from "../storage/knowledgeRepository.js";
 import type { Logger } from "../utils/logger.js";
 import { clearSessionCookie, COOKIE_NAME, createToken, isValidToken, LoginThrottle, readCookie, samePassword, setSessionCookie } from "./auth.js";
 import { InsightsService } from "./insights.js";
+import { SupabaseInsightsCache } from "./insightsCache.js";
 import { StatsRepository } from "./statsRepository.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -33,7 +34,7 @@ export function createAdminRouter(deps: AdminDeps): Router {
   const router = Router();
   const throttle = new LoginThrottle();
   const stats = supabase ? new StatsRepository(supabase, config.TIMEZONE) : undefined;
-  const insights = new InsightsService(config, logger);
+  const insights = new InsightsService(config, logger, supabase ? new SupabaseInsightsCache(supabase) : undefined);
 
   router.use("/panel", express.static(path.resolve(process.cwd(), "public/panel"), { index: "index.html" }));
 
@@ -158,14 +159,33 @@ export function createAdminRouter(deps: AdminDeps): Router {
     res.json(await stats.summary(diasDe(req)));
   });
 
+  /**
+   * Devuelve el ÚLTIMO análisis guardado, al instante. Generar uno nuevo tarda
+   * (hay que mandarle cientos de mensajes a la IA), así que eso se pide aparte.
+   */
   router.get("/panel/api/insights", requireAuth, async (req: Request, res: Response) => {
     if (!stats) {
       res.status(503).json({ error: "El análisis necesita Supabase configurado." });
       return;
     }
     const dias = diasDe(req);
-    const consultas = await stats.consultas(dias);
-    res.json(await insights.analyze(consultas, dias, req.query.refrescar === "1"));
+    const ultimo = await insights.ultimo(dias);
+    if (ultimo) {
+      res.json({ ...ultimo, cacheado: true });
+      return;
+    }
+    // Nunca se analizó este período: se genera ahora (la primera vez tarda).
+    res.json({ ...(await insights.analyze(await stats.consultas(dias), dias)), cacheado: false });
+  });
+
+  /** Genera un análisis nuevo (botón "Actualizar análisis"). */
+  router.post("/panel/api/insights/refresh", requireAuth, async (req: Request, res: Response) => {
+    if (!stats) {
+      res.status(503).json({ error: "El análisis necesita Supabase configurado." });
+      return;
+    }
+    const dias = diasDe(req);
+    res.json({ ...(await insights.analyze(await stats.consultas(dias), dias)), cacheado: false });
   });
 
   // Errores: se loguean completos y al panel va un mensaje corto.

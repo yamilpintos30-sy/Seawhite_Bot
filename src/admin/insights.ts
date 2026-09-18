@@ -27,6 +27,12 @@ export interface Insights {
   generadoEl: string;
 }
 
+/** Guarda el último análisis de cada período (tabla `bot_insights`). */
+export interface InsightsCache {
+  get(clave: string): Promise<Insights | null>;
+  set(clave: string, insights: Insights): Promise<void>;
+}
+
 const SYSTEM = `Analizás conversaciones reales de un bot de WhatsApp de SEA WHITE S.A., una empresa de transporte.
 Los usuarios son choferes y administrativos que cargan documentación (ART, carnet, VTV, seguros, formulario 931, tarjeta verde) en la página web de la empresa, y consultan vencimientos.
 
@@ -52,20 +58,33 @@ Reglas:
 
 export class InsightsService {
   private readonly client: Anthropic;
-  private cache = new Map<string, { insights: Insights; expira: number }>();
+  private memoria = new Map<string, Insights>();
 
   constructor(
     private readonly config: AppConfig,
     private readonly logger: Logger,
-    private readonly cacheMinutes = 30,
+    private readonly cache?: InsightsCache,
   ) {
-    this.client = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 120_000 });
+    this.client = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 180_000 });
   }
 
-  async analyze(mensajes: IncomingRow[], dias: number, forzar = false): Promise<Insights> {
-    const clave = `${dias}:${mensajes.length}`;
-    const enCache = this.cache.get(clave);
-    if (!forzar && enCache && enCache.expira > Date.now()) return enCache.insights;
+  /** Último análisis guardado de ese período, sin generar nada (respuesta instantánea). */
+  async ultimo(dias: number): Promise<Insights | null> {
+    const clave = `dias:${dias}`;
+    const enMemoria = this.memoria.get(clave);
+    if (enMemoria) return enMemoria;
+    try {
+      const guardado = (await this.cache?.get(clave)) ?? null;
+      if (guardado) this.memoria.set(clave, guardado);
+      return guardado;
+    } catch (err) {
+      this.logger.warn({ err }, "No se pudo leer el último análisis guardado");
+      return null;
+    }
+  }
+
+  async analyze(mensajes: IncomingRow[], dias: number): Promise<Insights> {
+    const clave = `dias:${dias}`;
 
     if (mensajes.length === 0) {
       return { resumen: "Todavía no hay consultas en este período.", temas: [], errores: [], quejas: [], sugerencias: [], mensajesAnalizados: 0, generadoEl: new Date().toISOString() };
@@ -90,7 +109,9 @@ export class InsightsService {
       generadoEl: new Date().toISOString(),
     };
     this.logger.info({ dias, mensajes: mensajes.length, usage: response.usage }, "Análisis de conversaciones generado");
-    this.cache.set(clave, { insights, expira: Date.now() + this.cacheMinutes * 60_000 });
+    this.memoria.set(clave, insights);
+    // Guardarlo no puede hacer fallar el análisis que ya está listo.
+    await this.cache?.set(clave, insights).catch((err) => this.logger.warn({ err }, "No se pudo guardar el análisis"));
     return insights;
   }
 
