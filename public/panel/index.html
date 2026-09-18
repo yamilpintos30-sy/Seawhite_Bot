@@ -74,21 +74,27 @@
 
       /* ---------- Estructura ---------- */
       /* Barra blanca: el logo es azul sobre transparente y en fondo oscuro no se ve. */
-      header.barra {
+      header.cabecera {
         background: var(--panel);
         color: var(--texto);
-        padding: 12px 24px;
+        padding: 14px 28px;
         display: flex;
         align-items: center;
         gap: 16px;
         flex-wrap: wrap;
         border-bottom: 3px solid var(--azul);
       }
-      header.barra img { height: 44px; width: auto; display: block; }
-      header.barra .marca { font-weight: 700; color: var(--azul); line-height: 1.2; }
-      header.barra .marca span { display: block; font-weight: 400; color: var(--suave); font-size: 13px; }
-      header.barra .crece { flex: 1; }
-      header.barra label { font-size: 13px; color: var(--suave); }
+      header.cabecera img { height: 72px; width: auto; display: block; }
+      header.cabecera .marca { font-weight: 700; font-size: 20px; color: var(--azul); line-height: 1.2; }
+      header.cabecera .controles { display: flex; align-items: center; gap: 10px; }
+      header.cabecera .controles select { width: auto; padding: 7px 10px; }
+      header.cabecera .marca span { display: block; font-weight: 400; color: var(--suave); font-size: 13px; }
+      header.cabecera .crece { flex: 1; }
+      header.cabecera label { font-size: 13px; color: var(--suave); }
+      @media (max-width: 640px) {
+        header.cabecera img { height: 52px; }
+        header.cabecera .controles { width: 100%; }
+      }
       /* Las opciones del desplegable siempre en texto oscuro sobre blanco. */
       select, select option { color: var(--texto); background: #fff; }
       .btn:hover { filter: brightness(1.12); }
@@ -191,17 +197,19 @@
 
     <!-- ============ PANEL ============ -->
     <div id="panel" hidden>
-      <header class="barra">
+      <header class="cabecera">
         <img src="logo.png" alt="SEA WHITE S.A." />
         <div class="marca">Panel de Enri <span>Asistente de WhatsApp</span></div>
         <div class="crece"></div>
-        <label for="periodo">Período</label>
-        <select id="periodo" style="width:auto;padding:7px 10px">
-          <option value="7">Últimos 7 días</option>
-          <option value="30" selected>Últimos 30 días</option>
-          <option value="90">Últimos 90 días</option>
-        </select>
-        <button class="btn secundario chico" id="salir">Salir</button>
+        <div class="controles">
+          <label for="periodo">Período</label>
+          <select id="periodo">
+            <option value="7">Últimos 7 días</option>
+            <option value="30" selected>Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+          </select>
+          <button class="btn secundario chico" id="salir">Salir</button>
+        </div>
       </header>
 
       <nav class="pestanas" role="tablist">
