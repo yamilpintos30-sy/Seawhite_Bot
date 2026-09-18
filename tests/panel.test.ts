@@ -118,6 +118,8 @@ describe("estadísticas", () => {
     expect(s.porHora.find((h) => h.hora === 10)?.mensajes).toBe(2);
     expect(s.porSeccion).toContainEqual({ seccion: "Carga de documentos", mensajes: 1 });
     expect(s.porSeccion).toContainEqual({ seccion: "Chofer por DNI", mensajes: 1 });
+    // Los menús y las conversaciones cerradas no cuentan como "uso".
+    expect(s.porSeccion.map((x) => x.seccion)).not.toContain("Menú");
   });
 
   it("las consultas para la IA excluyen las respuestas del bot y los mensajes vacíos", async () => {

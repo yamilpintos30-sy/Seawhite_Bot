@@ -24,7 +24,11 @@ export interface StatsSummary {
   promedioMensajesPorConversacion: number;
   porDia: DailyPoint[];
   porHora: Array<{ hora: number; mensajes: number }>;
-  /** Cuánto se usó cada parte del bot (estado en el que estaba el usuario). */
+  /**
+   * Cuánto se usó cada FUNCIÓN del bot. No se cuentan los pasos de navegación
+   * (menús) ni las conversaciones cerradas: no dicen nada sobre qué necesita
+   * la gente.
+   */
   porSeccion: Array<{ seccion: string; mensajes: number }>;
 }
 
@@ -35,6 +39,9 @@ export interface IncomingRow {
   estado: string;
   texto: string;
 }
+
+/** Estados que no son una función del bot: no entran en "qué se usa más". */
+const SIN_INTERES = new Set(["MAIN_MENU", "BALANZA_MENU", "CERRADA"]);
 
 const SECCIONES: Record<string, string> = {
   MAIN_MENU: "Menú principal",
@@ -111,8 +118,10 @@ export class StatsRepository {
       porDia.set(fecha, dia);
 
       porHora.set(hora, (porHora.get(hora) ?? 0) + 1);
-      const seccion = SECCIONES[row.state ?? ""] ?? "Otros";
-      porSeccion.set(seccion, (porSeccion.get(seccion) ?? 0) + 1);
+      if (!SIN_INTERES.has(row.state ?? "")) {
+        const seccion = SECCIONES[row.state ?? ""] ?? "Otros";
+        porSeccion.set(seccion, (porSeccion.get(seccion) ?? 0) + 1);
+      }
 
       personas.add(persona);
       conversaciones.add(row.conversation_id);
