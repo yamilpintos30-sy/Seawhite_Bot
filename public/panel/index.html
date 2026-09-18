@@ -5,11 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
     <title>Panel · Enri — SEA WHITE S.A.</title>
+    <link rel="icon" type="image/png" href="logo.png" />
     <style>
       :root {
-        --azul: #0b2545;
-        --azul-claro: #14406e;
-        --acento: #1f7ae0;
+        /* Azul del logo de SEA WHITE. */
+        --azul: #0b4a92;
+        --azul-claro: #1560b8;
+        --acento: #0b4a92;
         --ok: #1f9d55;
         --alerta: #d97706;
         --error: #c53030;
@@ -65,25 +67,32 @@
         color: #fff;
         font-weight: 600;
       }
-      .btn:hover { background: #1765bd; }
       .btn:disabled { opacity: .55; cursor: not-allowed; }
       .btn.secundario { background: #eef2f9; color: var(--azul); }
       .btn.secundario:hover { background: #e2e8f5; }
       .btn.chico { padding: 7px 12px; font-size: 13px; }
 
       /* ---------- Estructura ---------- */
+      /* Barra blanca: el logo es azul sobre transparente y en fondo oscuro no se ve. */
       header.barra {
-        background: var(--azul);
-        color: #fff;
-        padding: 14px 24px;
+        background: var(--panel);
+        color: var(--texto);
+        padding: 12px 24px;
         display: flex;
         align-items: center;
         gap: 16px;
         flex-wrap: wrap;
+        border-bottom: 3px solid var(--azul);
       }
-      header.barra .marca { font-weight: 700; letter-spacing: .3px; }
-      header.barra .marca span { font-weight: 400; opacity: .75; }
+      header.barra img { height: 44px; width: auto; display: block; }
+      header.barra .marca { font-weight: 700; color: var(--azul); line-height: 1.2; }
+      header.barra .marca span { display: block; font-weight: 400; color: var(--suave); font-size: 13px; }
       header.barra .crece { flex: 1; }
+      header.barra label { font-size: 13px; color: var(--suave); }
+      /* Las opciones del desplegable siempre en texto oscuro sobre blanco. */
+      select, select option { color: var(--texto); background: #fff; }
+      .btn:hover { filter: brightness(1.12); }
+      .btn:disabled:hover { filter: none; }
       nav.pestanas {
         background: var(--panel);
         border-bottom: 1px solid var(--borde);
@@ -170,6 +179,7 @@
     <!-- ============ INGRESO ============ -->
     <div id="login">
       <form class="tarjeta-login" id="form-login">
+        <img src="logo.png" alt="SEA WHITE S.A." style="display:block;height:96px;width:auto;margin:0 auto 20px" />
         <h1>Panel de Enri</h1>
         <p>Asistente de WhatsApp · SEA WHITE S.A.</p>
         <label for="password" style="font-size:14px;font-weight:600">Contraseña</label>
@@ -182,9 +192,10 @@
     <!-- ============ PANEL ============ -->
     <div id="panel" hidden>
       <header class="barra">
-        <div class="marca">Panel de Enri <span>· SEA WHITE S.A.</span></div>
+        <img src="logo.png" alt="SEA WHITE S.A." />
+        <div class="marca">Panel de Enri <span>Asistente de WhatsApp</span></div>
         <div class="crece"></div>
-        <label for="periodo" style="font-size:13px;opacity:.85">Período</label>
+        <label for="periodo">Período</label>
         <select id="periodo" style="width:auto;padding:7px 10px">
           <option value="7">Últimos 7 días</option>
           <option value="30" selected>Últimos 30 días</option>
