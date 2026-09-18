@@ -70,16 +70,33 @@ export class StatsRepository {
   ) {}
 
   /** Trae los mensajes de los últimos `dias` días (tope defensivo de filas). */
-  private async rows(dias: number, limit = 20000): Promise<MessageRow[]> {
+  /**
+   * Mensajes de los USUARIOS de los últimos `dias` días (las respuestas del bot
+   * no se cuentan en ninguna estadística).
+   *
+   * Supabase devuelve como máximo 1000 filas por consulta aunque se pida más:
+   * se trae por páginas. Sin esto el panel se cortaba en la fila 1000 y los
+   * últimos días no aparecían.
+   */
+  private async rows(dias: number, tope = 50_000): Promise<MessageRow[]> {
     const desde = new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString();
-    const { data, error } = await this.client
-      .from("bot_messages")
-      .select("conversation_id, direction, content, state, meta, created_at")
-      .gte("created_at", desde)
-      .order("created_at", { ascending: true })
-      .limit(limit);
-    if (error) throw new Error(`No se pudieron leer los mensajes: ${error.message}`);
-    return (data ?? []) as MessageRow[];
+    const PAGINA = 1000;
+    const filas: MessageRow[] = [];
+    for (let inicio = 0; inicio < tope; inicio += PAGINA) {
+      const { data, error } = await this.client
+        .from("bot_messages")
+        .select("conversation_id, direction, content, state, meta, created_at")
+        .eq("direction", "in")
+        .gte("created_at", desde)
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(inicio, inicio + PAGINA - 1);
+      if (error) throw new Error(`No se pudieron leer los mensajes: ${error.message}`);
+      const pagina = (data ?? []) as MessageRow[];
+      filas.push(...pagina);
+      if (pagina.length < PAGINA) break;
+    }
+    return filas;
   }
 
   /** Fecha (YYYY-MM-DD) y hora local del bot para un timestamp. */

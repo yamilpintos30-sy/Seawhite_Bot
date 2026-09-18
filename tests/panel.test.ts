@@ -82,16 +82,40 @@ describe("contexto: el del panel manda sobre el del repositorio", () => {
 });
 
 describe("estadísticas", () => {
-  /** Doble de Supabase: devuelve las filas indicadas para cualquier consulta. */
-  function fakeSupabase(rows: unknown[]) {
+  /**
+   * Doble de Supabase: filtra por dirección y, como el real, devuelve como
+   * máximo 1000 filas por consulta (hay que paginar con range).
+   */
+  function fakeSupabase(rows: Array<{ direction: string }>) {
+    let filtradas = rows;
     const builder = {
       select: () => builder,
+      eq: (_col: string, valor: string) => {
+        filtradas = rows.filter((r) => r.direction === valor);
+        return builder;
+      },
       gte: () => builder,
       order: () => builder,
-      limit: async () => ({ data: rows, error: null }),
+      range: async (desde: number, hasta: number) => ({ data: filtradas.slice(desde, Math.min(hasta + 1, desde + 1000)), error: null }),
     };
     return { from: () => builder } as never;
   }
+
+  it("con más de 1000 mensajes no se corta: cuenta todos los días", async () => {
+    const muchos = Array.from({ length: 2500 }, (_, i) => ({
+      conversation_id: `c${i % 40}`,
+      direction: i % 2 === 0 ? "in" : "out",
+      content: "consulta",
+      state: "CARGA_DOC",
+      meta: {},
+      // del 14/09 al 18/09, en orden
+      created_at: new Date(Date.parse("2026-09-14T15:00:00Z") + i * 150_000).toISOString(),
+    }));
+    const repo = new StatsRepository(fakeSupabase(muchos), "America/Argentina/Buenos_Aires");
+    const s = await repo.summary(30);
+    expect(s.totalMensajes).toBe(1250);
+    expect(s.porDia[s.porDia.length - 1]!.fecha).toBe("2026-09-18");
+  });
 
   const hoy = "2026-09-17T13:00:00.000Z"; // 10:00 en Argentina
   const ayer = "2026-09-16T18:30:00.000Z"; // 15:30 en Argentina
